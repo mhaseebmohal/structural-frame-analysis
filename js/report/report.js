@@ -304,24 +304,39 @@ const ReportGenerator = (() => {
   }
 
   // ── Reactions table ────────────────────────────────────────────────────────
-  function reactTable(reactions, nodes) {
+  function reactTable(reactions, nodes, is3D) {
     if (!reactions) return '';
+    // 3D reactions carry Rz/Mx/My/Mz and no `M` (mirrors fileio.js exportCSV).
+    if (is3D === undefined) is3D = nodes.some(nd => reactions[nd.id] && reactions[nd.id].Rz !== undefined);
     const rows = nodes
       .filter(nd => nd.support && nd.support !== 'none')
       .map(nd => {
-        const r = reactions[nd.id] || { Rx:0, Ry:0, M:0 };
-        return `
+        const r = reactions[nd.id] || {};
+        return is3D ? `
           <tr>
             <td>N${nd.id}</td>
             <td>${nd.support}</td>
-            <td>${fmt(r.Rx)}</td>
-            <td>${fmt(r.Ry)}</td>
-            <td>${fmt(r.M)}</td>
+            <td>${fmt(r.Rx || 0)}</td>
+            <td>${fmt(r.Ry || 0)}</td>
+            <td>${fmt(r.Rz || 0)}</td>
+            <td>${fmt(r.Mx || 0)}</td>
+            <td>${fmt(r.My || 0)}</td>
+            <td>${fmt(r.Mz || 0)}</td>
+          </tr>` : `
+          <tr>
+            <td>N${nd.id}</td>
+            <td>${nd.support}</td>
+            <td>${fmt(r.Rx || 0)}</td>
+            <td>${fmt(r.Ry || 0)}</td>
+            <td>${fmt(r.M || 0)}</td>
           </tr>`;
       }).join('');
+    const head = is3D
+      ? '<tr><th>Node</th><th>Support</th><th>R<sub>x</sub> (kN)</th><th>R<sub>y</sub> (kN)</th><th>R<sub>z</sub> (kN)</th><th>M<sub>x</sub> (kNm)</th><th>M<sub>y</sub> (kNm)</th><th>M<sub>z</sub> (kNm)</th></tr>'
+      : '<tr><th>Node</th><th>Support</th><th>R<sub>x</sub> (kN)</th><th>R<sub>y</sub> (kN)</th><th>M (kNm)</th></tr>';
     return `
       <table class="rpt-table">
-        <tr><th>Node</th><th>Support</th><th>R<sub>x</sub> (kN)</th><th>R<sub>y</sub> (kN)</th><th>M (kNm)</th></tr>
+        ${head}
         ${rows}
       </table>`;
   }
@@ -351,23 +366,40 @@ const ReportGenerator = (() => {
   }
 
   // ── Nodal displacement table ───────────────────────────────────────────────
-  function dispTable(disp, nodes) {
+  function dispTable(disp, nodes, is3D) {
     if (!disp) return '';
+    if (is3D === undefined) is3D = nodes.some(nd => disp[nd.id] && disp[nd.id].w !== undefined);
+    const mm = v => ((typeof v === 'number' && isFinite(v) ? v : 0) * 1000).toFixed(4);
     const rows = nodes.map(nd => {
-      const d = disp[nd.id] || { u:0, v:0, theta:0 };
-      return `
+      const d = disp[nd.id] || {};
+      return is3D ? `
         <tr>
           <td>N${nd.id}</td>
           <td>${fmt(nd.x)}</td>
           <td>${fmt(nd.y)}</td>
-          <td>${(d.u * 1000).toFixed(4)}</td>
-          <td>${(d.v * 1000).toFixed(4)}</td>
-          <td>${(d.theta * 1000).toFixed(4)}</td>
+          <td>${fmt(nd.z || 0)}</td>
+          <td>${mm(d.u)}</td>
+          <td>${mm(d.v)}</td>
+          <td>${mm(d.w)}</td>
+          <td>${mm(d['θx'])}</td>
+          <td>${mm(d['θy'])}</td>
+          <td>${mm(d['θz'])}</td>
+        </tr>` : `
+        <tr>
+          <td>N${nd.id}</td>
+          <td>${fmt(nd.x)}</td>
+          <td>${fmt(nd.y)}</td>
+          <td>${mm(d.u)}</td>
+          <td>${mm(d.v)}</td>
+          <td>${mm(d.theta)}</td>
         </tr>`;
     }).join('');
+    const head = is3D
+      ? '<tr><th>Node</th><th>X (m)</th><th>Y (m)</th><th>Z (m)</th><th>u (mm)</th><th>v (mm)</th><th>w (mm)</th><th>θx (mrad)</th><th>θy (mrad)</th><th>θz (mrad)</th></tr>'
+      : '<tr><th>Node</th><th>X (m)</th><th>Y (m)</th><th>u (mm)</th><th>v (mm)</th><th>θ (mrad)</th></tr>';
     return `
       <table class="rpt-table">
-        <tr><th>Node</th><th>X (m)</th><th>Y (m)</th><th>u (mm)</th><th>v (mm)</th><th>θ (mrad)</th></tr>
+        ${head}
         ${rows}
       </table>`;
   }
@@ -1305,10 +1337,10 @@ function downloadHTML() {
     ${eqCheck}
 
     <h3>2.1 Support Reactions</h3>
-    ${reactTable(results.reactions, nodes)}
+    ${reactTable(results.reactions, nodes, results.is3D ? true : undefined)}
 
     <h3>2.2 Nodal Displacements</h3>
-    ${dispTable(results.disp, nodes)}
+    ${dispTable(results.disp, nodes, results.is3D ? true : undefined)}
 
     <h3>2.3 Member End Forces</h3>
     ${memberForceTable(ef)}

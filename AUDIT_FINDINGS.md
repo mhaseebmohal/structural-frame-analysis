@@ -155,3 +155,11 @@ The header says `window.AppGenerators = { generateFrame, generateTruss, generate
 
 **Test harness has no fault isolation between its ~100 groups — one thrown error silently voids everything after it**
 A failed assertion is recorded and execution continues, but an actual thrown error (e.g. a null dereference) aborts the whole process immediately with no top-level try/catch: every later group never runs, and the run ends in a raw stack trace instead of the normal pass/fail summary — with no CI gating this file, a single crash can mask regressions across a large fraction of the suite with no clear signal they were skipped. `tests/regression.js:57-66, 7500-7507`
+
+## Resolution log — non-app.js/index.html items (2026-09-29)
+
+Resolved (this pass): report.js `dispTable`/`reactTable` now 3D-aware (auto-detect or `is3D` arg; report passes `results.is3D`); CSS `#1565c0` replaced by `var(--accent)` in style.css/features.css (`--accent` defined in `:root`); ACI Ch1/Ch3/Ch4/Ch6, CompoundSection and FormulaLibrary regression groups added to tests/regression.js.
+
+Verified already fixed in current code (no change needed): importJSON shape validation, command-palette Generate dropdown indexing, frame_sections.js modal-based CRUD (QuickModal), extrude.js Map lookups, selection.js spatial-hash merge, formula_library/natural_freq use `calcEI`, README constants.js/load-order/projects-store/sections-store text, generators.js header exports.
+
+Left deliberately: `js/core/perf.js` (PerfMonitor is now actually called from app.js solve/P-Delta paths, so no longer dead); indexeddb.js section functions kept (implemented, tested, documented in README as unwired); compound_section "channel" is wired in the shape-type select and params already.

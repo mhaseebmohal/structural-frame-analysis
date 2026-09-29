@@ -86,7 +86,7 @@
   font-weight: 600;
   text-transform: uppercase;
 }
-#modal-section-db .db-badge.steel    { background:#e3f2fd; color:#1565c0; }
+#modal-section-db .db-badge.steel    { background:#e3f2fd; color:var(--accent); }
 #modal-section-db .db-badge.concrete { background:#fff3e0; color:#e65100; }
 #modal-section-db .db-badge.timber   { background:#f1f8e9; color:#33691e; }
 #modal-section-db .db-badge.other    { background:#fce4ec; color:#880e4f; }
@@ -121,7 +121,7 @@
   color: var(--text);
   background: var(--bg-pane);
   border: 1px solid var(--border);
-  border-left: 3px solid #1565c0;
+  border-left: 3px solid var(--accent);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   pointer-events: none;
@@ -137,7 +137,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #1565c0 var(--pct, 0%), transparent var(--pct, 0%));
+  background: linear-gradient(90deg, var(--accent) var(--pct, 0%), transparent var(--pct, 0%));
   z-index: 10000;
   pointer-events: none;
   transition: --pct 0.2s;
@@ -162,8 +162,8 @@
 .fsec-item.selected {
   background: rgba(21,101,192,0.15);
   font-weight: 600;
-  color: #1565c0;
-  border-left: 3px solid #1565c0;
+  color: var(--accent);
+  border-left: 3px solid var(--accent);
   padding-left: 6px;
 }
 .fsec-color {
@@ -218,13 +218,13 @@
   text-align: center;
 }
 .shape-tile:hover {
-  border-color: #1565c0;
+  border-color: var(--accent);
   background: rgba(21,101,192,0.06);
   box-shadow: 0 1px 4px rgba(21,101,192,0.15);
 }
 .shape-tile.active {
   background: rgba(21,101,192,0.13);
-  border-color: #1565c0;
+  border-color: var(--accent);
   border-width: 2px;
   box-shadow: 0 1px 6px rgba(21,101,192,0.25);
 }
@@ -242,7 +242,7 @@
   word-break: break-word;
   text-align: center;
 }
-.shape-tile.active .shape-lbl { color: #1565c0; font-weight: 600; }
+.shape-tile.active .shape-lbl { color: var(--accent); font-weight: 600; }
 .shape-tile.active .shape-icon { filter: brightness(0.85); }
 
 /* ── Dimension rows in section data dialog ──────────────────────── */

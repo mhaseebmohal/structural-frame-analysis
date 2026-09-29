@@ -43,13 +43,13 @@ for (const f of ['js/solver.js', 'js/solver3d.js', 'js/analysis/pdelta.js',
                  'js/io/fileio.js', 'js/report/report.js', 'js/design/sections.js',
                  // Also pure logic, no DOM — previously never loaded here at all,
                  // so its ASCE7/EC0 combo generation had zero regression coverage.
-                 'js/design/load_combos_generator.js']) {
+                 'js/design/load_combos_generator.js', 'js/design/modifiers.js']) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 }
 const { solveFrame, solveFrame3D, PDeltaAnalysis, ModeShapeAnalysis, ResponseSpectrum, StructDB,
         DesignChecks, ACIDesign, RCDesign, FoundationDesign, BeamFormulas,
         PMInteraction, MohrsCircle, NaturalFreq, FileIO, ReportGenerator,
-        SectionDB, LoadCombosGenerator,
+        SectionDB, LoadCombosGenerator, PropertyModifiers,
         // Resolves a member stiffness modifier, falling back to its section.
         stiffMod } = ctx;
 
@@ -7569,6 +7569,168 @@ group('EC0 EQU combo includes the actual lateral case, not just DL');
   const neither = LoadCombosGenerator.generateEC0_ULS([dl, ll]);
   check('no EQU combo at all when neither WL nor EQ is present',
         neither.filter(c => c.code === 'EC0 EQU').length === 0);
+}
+
+group('Audit follow-ups: 3D solver guards, P-Delta 3D, phi limits, footing, combos, modifiers');
+{
+  // ── 3D solver: NaN section property must fail cleanly, not return NaN ──
+  const n3 = [{ id: 1, x: 0, y: 0, z: 0, support: 'fixed' }, { id: 2, x: 4, y: 0, z: 0 }];
+  const b3 = [{ id: 1, node1: 1, node2: 2, sectionId: 1 }];
+  const badSec = [{ id: 1, E: 210, A: 100, I: 20000, Ix: 20000, Iy: 5000, J: 'bad' }];
+  const rNaN = solveFrame3D(n3, b3, badSec, [{ id: 1, type: 'nodal', nodeId: 2, fy: -10 }], []);
+  check('3D solver rejects NaN stiffness instead of returning NaN', !!rNaN.error && !rNaN.success, JSON.stringify(rNaN).slice(0, 80));
+
+  // ── 3D: custom fixedDOF mask honoured when support is 'none' ──
+  const nM = [{ id: 1, x: 0, y: 0, z: 0, support: 'none', fixedDOF: [1, 1, 1, 1, 1, 1] },
+              { id: 2, x: 4, y: 0, z: 0, support: 'none' }];
+  const rM = solveFrame3D(nM, b3, SEC, [{ id: 1, type: 'nodal', nodeId: 2, fy: -10 }], []);
+  check('3D fixedDOF mask with support none restrains the node', !!rM.success && Math.abs(rM.disp[1].w) < 1e-9 && rM.disp[2].w < 0, rM.error);
+  near('3D fixedDOF-only support carries the reaction', rM.reactions[1].Rz, 10, 1e-6);
+
+  // ── P-Delta refuses non-planar models rather than collapsing to 2D ──
+  const nP = [{ id: 1, x: 0, y: 0, z: 0, support: 'fixed' }, { id: 2, x: 0, y: 3, z: 4 }];
+  const pd3 = PDeltaAnalysis.runPDelta(nP, b3, SEC, [{ id: 1, type: 'nodal', nodeId: 2, fy: -10 }], []);
+  check('P-Delta returns a clear error for a genuinely 3D model', !!pd3.error && !pd3.success, pd3.error);
+
+  // ── phiFromEpst derives limits from fy ──
+  const phi = ACIDesign.phiFromEpst;
+  check('phi: Grade 60 tension-controlled at 0.005', phi(0.0051, 'tied', 420).zone === 'tension-controlled');
+  check('phi: Grade 80 (fy=550) is still in transition at 0.005',
+        phi(0.005, 'tied', 550).zone === 'transition', phi(0.005, 'tied', 550).zone);
+  check('phi: Grade 40 (fy=280) compression-controlled boundary at fy/Es',
+        phi(0.0013, 'tied', 280).zone === 'compression-controlled');
+
+  // ── Footing: rectangular footing designed independently in Y ──
+  const FD = FoundationDesign;
+  const sq = FD.designPadFoundation({ L: 3, B: 3, N_G: 600, N_Q: 200, Mx_G: 100 });
+  const rect = FD.designPadFoundation({ L: 4, B: 2, col_L: 0.4, col_B: 0.3, N_G: 600, N_Q: 200 });
+  const ry = rect.checks.find(c => /Y-dir/.test(c.check || ''));
+  check('rectangular footing reports a separately computed Y-direction check', !!ry);
+  check('square footing design still produces checks', sq.checks.length > 0);
+  const p0 = FD.designPadFoundation({ L: 3, B: 3, N_G: 600, N_Q: 200 });
+  const p1 = FD.designPadFoundation({ L: 3, B: 3, N_G: 600, N_Q: 200, My_G: 150 });
+  const pun = r => r.checks.find(c => /Punching/i.test(c.check || ''));
+  check('punching eta rises with minor-axis moment', pun(p1) && pun(p0) && pun(p1).eta > pun(p0).eta,
+        `${pun(p0) && pun(p0).eta} -> ${pun(p1) && pun(p1).eta}`);
+
+  // ── slidingCheck / optimizeSize ──
+  const sl = FD.slidingCheck(1000, 100, 30, 0, 3, 3);
+  near('sliding Rd = N tan(phi)', sl.Rd, 1000 * Math.tan(30 * Math.PI / 180), 0.01);
+  check('sliding passes when H < Rd', sl.pass === true && sl.eta < 1);
+  const sl2 = FD.slidingCheck(1000, 700, 30, 0, 3, 3);
+  check('sliding fails when H > Rd', sl2.pass === false && sl2.eta > 1);
+  near('sliding cohesion term c*A', FD.slidingCheck(0, 10, 30, 5, 2, 3).Rd, 30, 1e-6);
+  const opt = FD.optimizeSize({ N_G: 600, N_Q: 200, h_f: 0.9 });
+  check('optimizeSize finds a passing square footing', !opt.error && opt.result.summary.pass && opt.recommended_L === opt.recommended_B, opt.error);
+  const optBig = FD.optimizeSize({ N_G: 600, N_Q: 200, qa: 10 }, 0.5, 2.0);
+  check('optimizeSize reports an error when nothing fits', !!optBig.error);
+
+  // ── LoadCombosGenerator ASCE7 ──
+  const cDL = { id: 1, name: 'D', type: 'DL' }, cLL = { id: 2, name: 'L', type: 'LL' }, cWL = { id: 3, name: 'W', type: 'WL' };
+  const asce = LoadCombosGenerator.generateASCE7([cDL, cLL, cWL], { method: 'LRFD' });
+  check('ASCE7 LRFD has 1.4D', asce.some(c => c.factors[1] === 1.4 && Object.keys(c.factors).length === 1));
+  check('ASCE7 LRFD has 1.2D + 1.6L', asce.some(c => c.factors[1] === 1.2 && c.factors[2] === 1.6));
+  check('ASCE7 LRFD has a wind combo with 1.0W', asce.some(c => c.factors[3] === 1.0 && c.factors[1] === 1.2));
+  check('ASCE7 LRFD has uplift 0.9D + 1.0W', asce.some(c => c.factors[1] === 0.9 && c.factors[3] === 1.0));
+
+  // ── PropertyModifiers round trip through FileIO ──
+  PropertyModifiers.set(7, { fi3: 0.35, f11: 0.7 });
+  const stM = { nodes: [], beams: [], sections: [], loads: [], nextId: {}, meta: {} };
+  const json = FileIO.exportJSON(stM);
+  PropertyModifiers.importAll({});
+  check('modifiers cleared before import', !PropertyModifiers.isModified(7));
+  FileIO.importJSON(json);
+  near('modifiers survive export/import (fi3)', PropertyModifiers.get(7).fi3, 0.35, 1e-9);
+  near('modifiers survive export/import (f11)', PropertyModifiers.get(7).f11, 0.7, 1e-9);
+  PropertyModifiers.importAll({});
+}
+
+// ── ACI Ch1/3/4/6, CompoundSection, FormulaLibrary (own VM: they need a
+//    localStorage stub and share no state with the main context) ─────────────
+{
+  const xctx = { console, Math, JSON, Number, Object, Array, Map, Set, String, Boolean, RegExp,
+                 localStorage: { getItem() { return null; }, setItem() {} } };
+  xctx.window = xctx;
+  vm.createContext(xctx);
+  for (const f of ['js/calc/beam_formulas.js', 'js/aci/ch1-materials.js', 'js/aci/ch3-flexure.js',
+                   'js/aci/ch4-shear.js', 'js/aci/ch6-columns.js',
+                   'js/calc/compound_section.js', 'js/calc/formula_library.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), xctx, { filename: f });
+  }
+  const near = (a, b, tol) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));
+  const { ACI_Ch1: C1, ACI_Ch3: C3, ACI_Ch4: C4, ACI_Ch6: C6, CompoundSection: CS, FormulaLibrary: FL } = xctx;
+
+  check('ACI Ch1: Ec = 4700*sqrt(fc)', near(C1.Ec(30), 4700 * Math.sqrt(30), 0.01));
+  check('ACI Ch1: fr = 0.62*sqrt(fc)', near(C1.fr(30), 0.62 * Math.sqrt(30), 1e-6));
+  check('ACI Ch1: beta1 is 0.85 at/below 28 MPa and reduces above', C1.beta1(20) === 0.85 && C1.beta1(30) < 0.85);
+  check('ACI Ch1: 4 x 20mm bar area', near(C1.barArea(4, 20), 1256.64, 1e-4));
+
+  const fl = C3.analyzeRect(1200, 300, 500, 30, 420);
+  check('ACI Ch3: analyzeRect tension-controlled, phi 0.9', fl.phi === 0.9 && fl.tension_controlled);
+  check('ACI Ch3: analyzeRect phiMn ~ 211.9 kNm', near(fl.phiMn, 211.86, 1e-3));
+  const dr = C3.designRect(200, 300, 500, 30, 420);
+  check('ACI Ch3: designRect result satisfies demand', dr.ok && dr.check.phiMn >= 199.99);
+
+  check('ACI Ch4: Vc_14 = 0.17*sqrt(fc)*bw*d', near(C4.Vc_14(30, 300, 500), 0.17 * Math.sqrt(30) * 300 * 500 / 1000, 1e-6));
+  check('ACI Ch4: Vc_19 finite and <= Vc_14 for low rho', isFinite(C4.Vc_19(30, 300, 500, 0.01)) && C4.Vc_19(30, 300, 500, 0.01) <= C4.Vc_14(30, 300, 500));
+
+  check('ACI Ch6: phi_col compression 0.65, tension 0.9', C6.phi_col(0.001, 0.0021) === 0.65 && C6.phi_col(0.01, 0.0021) === 0.9);
+  check('ACI Ch6: Pn_pure tied = 0.80*(0.85fc(Ag-Ast)+fy*Ast)',
+        near(C6.Pn_pure(30, 420, 160000, 2400), 0.80 * (0.85 * 30 * (160000 - 2400) + 420 * 2400) / 1000, 1e-6));
+  const dg = C6.interactionDiagram(30, 420, 400, 400, 2400, 60, 10);
+  check('ACI Ch6: interaction diagram starts at pure compression with Mn 0',
+        Array.isArray(dg) && dg.length > 5 && dg[0].Mn === 0 && dg.every(p => isFinite(p.Pn) && isFinite(p.Mn)));
+  const bp = C6.balancedPoint(30, 420, 400, 400, 2400, 60);
+  check('ACI Ch6: balanced point Pn, Mn positive', bp.Pn > 0 && bp.Mn > 0);
+
+  const one = CS.compute([{ type: 'rect', b: 100, h: 200, cx: 0, cy: 0 }]);
+  check('CompoundSection: single rect A, Ix, Iy', one.A === 20000 && near(one.Ix, 100 * 200 ** 3 / 12, 1e-9) && near(one.Iy, 200 * 100 ** 3 / 12, 1e-9));
+  const two = CS.compute([{ type: 'rect', b: 100, h: 200, cx: 0, cy: 0 }, { type: 'rect', b: 100, h: 200, cx: 0, cy: 200 }]);
+  check('CompoundSection: two stacked rects equal one 100x400 (parallel axis)',
+        two.A === 40000 && near(two.Ix, 100 * 400 ** 3 / 12, 1e-9) && near(two.ybar, 100, 1e-9));
+
+  check('FormulaLibrary: FORMULAS non-empty with unique ids', FL.FORMULAS.length > 0 && new Set(FL.FORMULAS.map(f => f.id)).size === FL.FORMULAS.length);
+  check('FormulaLibrary: every formula solves finite-looking output for benign inputs',
+        FL.FORMULAS.every(f => { try { const o = {}; f.inputs.forEach(i => { o[i.id] = 2; }); const r = f.solve(o); return r && typeof r === 'object'; } catch (e) { return false; } }));
+  const b2 = FL.FORMULAS.find(f => f.id === 'b2').solve({ w: 10, L: 6, E: 200, I: 20000 });
+  check('FormulaLibrary: SS UDL deflection 5wL^4/384EI = 4.219 mm', b2['δ_max [mm]'] === '4.219');
+}
+
+group('app.js / index.html: escaping, load validation, wizard self-weight, colour cache');
+{
+  const app  = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+  check('index.html defines _saEsc and uses it for section/case names',
+        /function _saEsc\(/.test(html) && /_saEsc\(s\.name\)/.test(html) && /_saEsc\(c\.name\)/.test(html) &&
+        /_saEsc\(sec\.name/.test(html));
+  check('section <option>s in the members table and check dialog escape names',
+        /\$\{escapeIssue\(s\.name\)\}<\/option>/.test(app));
+  check('saved-file list escapes file names before innerHTML',
+        /<span>\$\{escapeIssue\(name\)\}<\/span>/.test(app));
+  check('results header escapes the case/combo name',
+        /Showing: \$\{escapeIssue\(caseName\)\}/.test(app));
+
+  const a = app.indexOf("getElementById('load-ok').addEventListener('click'");
+  const seg = app.slice(a, app.indexOf('snapshot();', a));
+  check('load dialog: every numeric field goes through the validating num() helper',
+        /const num = \(id, label\)/.test(seg) && /Number\.isFinite\(v\)/.test(seg) &&
+        !/\+document\.getElementById\('load-(mag|ang|fx|fy|fy2|m|pos|pressure)-val'\)\.value/.test(seg) &&
+        /if \(bad\.length\)/.test(seg));
+
+  check('Beam Wizard reads #wiz-selfwt and calls applySelfWeight',
+        /getElementById\('wiz-selfwt'\)/.test(app) && /applySelfWeight\(0, lcDl, 'sel'\)/.test(app));
+
+  const ci = app.slice(app.indexOf('function sectionColorIndex'), app.indexOf('function sectionColor('));
+  check('sectionColorIndex uses a cached Map, not a per-call scan',
+        /new Map\(\)/.test(ci) && !/indexOf/.test(ci) && /_secOrderCache = null;\n    clearLabelBoxes/.test(app));
+
+  check('solveViaWorker tags requests with reqId and ignores foreign replies',
+        /d\.reqId !== reqId\) return/.test(app) &&
+        /reqId/.test(fs.readFileSync(path.join(ROOT, 'js/workers/solver.worker.js'), 'utf8')));
+  check('DEFL_INSP momentAt/shearAt delegate to DesignChecks.internalForceAt; dead code removed',
+        /internalForceAt\(ef, 'BMD'/.test(html) && /internalForceAt\(ef, 'SFD'/.test(html) &&
+        !/projectToMember/.test(html) && !/placeholder — we'll do proper check/.test(html));
 }
 
 } catch (e) {

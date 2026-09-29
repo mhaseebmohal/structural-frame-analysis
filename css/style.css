@@ -45,13 +45,8 @@
      the blue .active ribbon buttons and the blue table-row selection too. */
   --focus-ring:   #0b57d0;
   --focus-halo:   rgba(11,87,208,0.30);
-  /* Brand blue. Three call sites already read this as var(--accent, #1565c0)
-     as if it existed — it never did, so the fallback literal was always what
-     applied. Defining it here is what makes those three actually use the
-     variable; the same literal is still hand-written many more times
-     elsewhere in this file and in features.css (constant across light/dark,
-     like every other semantic action colour here), which a rebrand would
-     still need to find-and-replace rather than edit in one place. */
+  /* Brand blue: single source for every accent use in style.css and
+     features.css (constant across light/dark, like other action colours). */
   --accent:       #1565c0;
 }
 
@@ -311,7 +306,7 @@ body {
 }
 .panel-resizer:hover,
 .panel-resizer.dragging {
-  background: #1565C0;
+  background: var(--accent);
   width: 5px;
 }
 .panel-resizer::after {
@@ -383,7 +378,7 @@ body {
   color: var(--text);
   text-align: left;
 }
-.tb-dropdown-menu button:hover { background: var(--bg-tbl-hover); color: #1565C0; }
+.tb-dropdown-menu button:hover { background: var(--bg-tbl-hover); color: var(--accent); }
 .tb-dropdown-menu button .dd-icon { font-size: 15px; min-width: 20px; text-align: center; }
 .tb-dropdown-sep { height: 1px; background: var(--border); margin: 3px 10px; }
 
@@ -579,7 +574,7 @@ body {
 
 .dtbl input:focus, .dtbl select:focus {
   background: var(--bg-pane);
-  outline: 1px solid #1565C0;
+  outline: 1px solid var(--accent);
   border-radius: 1px;
 }
 
@@ -667,12 +662,12 @@ body {
 .btn-xs:hover { background: var(--btn-hover-bg); border-color: var(--btn-hover-br); }
 
 .btn-blue {
-  background: linear-gradient(to bottom, #2979ff, #1565C0);
+  background: linear-gradient(to bottom, #2979ff, var(--accent));
   color: #fff !important;
   border-color: #0d47a1;
 }
 
-.btn-blue:hover { background: linear-gradient(to bottom, #448aff, #1976d2); border-color: #1565C0; }
+.btn-blue:hover { background: linear-gradient(to bottom, #448aff, #1976d2); border-color: var(--accent); }
 
 .btn-red {
   background: linear-gradient(to bottom, #ef5350, #c62828);
@@ -748,8 +743,8 @@ body {
 }
 
 .form-row input:focus, .form-row select:focus {
-  outline: 2px solid #1565C0;
-  border-color: #1565C0;
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
 }
 
 .radio-group, .check-group {
@@ -839,7 +834,7 @@ kbd {
   transition: fill 0.1s;
 }
 
-.sv-node:hover { fill: #1565C0; }
+.sv-node:hover { fill: var(--accent); }
 /* Selected node — bright red fill + glow ring */
 /* No `r` here: the radius is zoom-dependent and set as an attribute in
    drawNodes(); a CSS `r` would override it and pin selected nodes at one size. */
@@ -855,7 +850,7 @@ kbd {
   stroke-linecap: round;
 }
 
-.sv-beam:hover  { stroke: #1565C0; stroke-width: 4; }
+.sv-beam:hover  { stroke: var(--accent); stroke-width: 4; }
 /* Selected beam — red, thicker */
 .sv-beam.sel       { stroke: #e53935 !important; stroke-width: 4.5 !important; stroke-dasharray: none !important; }
 /* Multi-selected beam (rubber-band) — red, slightly thinner */
@@ -876,18 +871,18 @@ kbd {
 .sv-label.lbl-member { fill: var(--label-member); }
 .sv-label.lbl-dim    { fill: var(--label-dim); }
 
-.sv-bmd { fill: rgba(21,101,192,0.22); stroke: #1565C0; stroke-width: 1.5; }
+.sv-bmd { fill: rgba(21,101,192,0.22); stroke: var(--accent); stroke-width: 1.5; }
 .sv-sfd { fill: rgba(46,125,50,0.22);  stroke: #2e7d32; stroke-width: 1.5; }
 .sv-nfd { fill: rgba(136,14,79,0.22);  stroke: #880e4f; stroke-width: 1.5; }
 /* Outline-only mode (no fill) */
-.sv-bmd[fill="none"] { stroke: #1565C0; stroke-width: 1.5; }
+.sv-bmd[fill="none"] { stroke: var(--accent); stroke-width: 1.5; }
 .sv-sfd[fill="none"] { stroke: #2e7d32; stroke-width: 1.5; }
 .sv-nfd[fill="none"] { stroke: #880e4f; stroke-width: 1.5; }
 
 /* Results table tabs */
 .res-tab { background: transparent; border: none; cursor: pointer; color: var(--text); transition: color 0.15s, border-color 0.15s; }
-.res-tab:hover { color: #1565c0; }
-.res-tab.active { color: #1565c0; border-bottom: 2px solid #1565c0 !important; }
+.res-tab:hover { color: var(--accent); }
+.res-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent) !important; }
 .sv-defl { fill: none; stroke: #e65100; stroke-width: 2; stroke-dasharray: 5 3; }
 
 /* ── Quick Summary card ──────────────────────────────── */
@@ -1057,7 +1052,7 @@ kbd {
   border-radius: 3px;
 }
 .dir-mode-btn:hover { background: var(--btn-hover-bg); border-color: var(--btn-hover-br); }
-.dir-mode-btn.active { background: #1565C0; color: #fff; border-color: #0d47a1; }
+.dir-mode-btn.active { background: var(--accent); color: #fff; border-color: #0d47a1; }
 
 /* ── PANE SUB-HEADERS ────────────────────────── */
 .pane-sub-hdr {
@@ -1148,7 +1143,7 @@ kbd {
 /* ── RUBBER-BAND SELECTION ───────────────────── */
 #rubber-band-rect {
   fill: rgba(21,101,192,0.08);
-  stroke: #1565C0;
+  stroke: var(--accent);
   stroke-width: 1;
   stroke-dasharray: 4 3;
   pointer-events: none;
@@ -1273,11 +1268,11 @@ kbd {
 }
 .draw-tool-btn:hover {
   background: var(--btn-hover-bg);
-  border-color: #1565c0;
-  color: #1565c0;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .draw-tool-btn.active {
-  background: linear-gradient(to bottom, #2979ff, #1565c0);
+  background: linear-gradient(to bottom, #2979ff, var(--accent));
   color: #fff;
   border-color: #1255b0;
 }
@@ -1330,7 +1325,7 @@ kbd {
   width: 100%;
   box-sizing: border-box;
 }
-.gen-row input:focus { outline: none; border-color: #1565c0; }
+.gen-row input:focus { outline: none; border-color: var(--accent); }
 .gen-arrow { transition: transform 0.15s; display: inline-block; }
 .gen-card-hdr.open .gen-arrow { transform: rotate(180deg); }
 
@@ -1372,8 +1367,8 @@ kbd {
   font-weight: 600;
   transition: border-color 0.15s;
 }
-#unit-system-sel:hover  { border-color: #1565c0; }
-#unit-system-sel:focus  { outline: none; border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.2); }
+#unit-system-sel:hover  { border-color: var(--accent); }
+#unit-system-sel:focus  { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(21,101,192,0.2); }
 [data-theme="dark"] #unit-system-sel {
   background: var(--bg-pane);
   border-color: var(--border);
@@ -1587,7 +1582,7 @@ kbd {
 
 /* Quick Add input focus */
 #member-popup #mpop-udl-val:focus,
-#member-popup #mpop-udl-case:focus { outline:2px solid #1565c0; border-color:transparent; }
+#member-popup #mpop-udl-case:focus { outline:2px solid var(--accent); border-color:transparent; }
 
 /* ── ACI 318 PANE ─────────────────────────────── */
 .aci-ch-btn {
@@ -1602,13 +1597,13 @@ kbd {
 .aci-chapter.active { display: block; }
 .aci-ch-hdr {
   padding: 8px 10px; font-size: 12px; font-weight: 700;
-  color: #fff; background: #1565c0;
+  color: #fff; background: var(--accent);
 }
 .aci-section {
   padding: 8px 10px; border-bottom: 1px solid var(--border-tbl,#e0e0e0);
 }
 .aci-sec-title {
-  font-size: 11px; font-weight: 700; color: #1565c0;
+  font-size: 11px; font-weight: 700; color: var(--accent);
   text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
 }
 .aci-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 6px; }
@@ -1620,7 +1615,7 @@ kbd {
 }
 .aci-calc-btn {
   width: 100%; margin-top: 6px; padding: 6px;
-  background: #1565c0; color: #fff; border: none; border-radius: 4px;
+  background: var(--accent); color: #fff; border: none; border-radius: 4px;
   font-size: 12px; font-weight: 700; cursor: pointer;
 }
 .aci-calc-btn:hover { background: #0d47a1; }
@@ -1634,16 +1629,16 @@ kbd {
 .aci-result .fail { color: #c62828; font-weight: 700; }
 .aci-info {
   padding: 5px 8px; background: #e8f0fe; border-radius: 3px;
-  font-size: 11px; color: #1565c0; margin-bottom: 6px;
+  font-size: 11px; color: var(--accent); margin-bottom: 6px;
 }
 .aci-sub { display: none; }
 .aci-sub.active { display: block; }
 .aci-sub-btn {
   padding: 2px 8px; font-size: 11px; font-weight: 600;
-  background: #c5d4f0; color: #1565c0;
+  background: #c5d4f0; color: var(--accent);
   border: 1px solid #a0b4e0; border-radius: 3px; cursor: pointer;
 }
-.aci-sub-btn.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+.aci-sub-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .aci-coming {
   padding: 20px 12px; font-size: 12px; color: #888; font-style: italic;
   text-align: center;
@@ -1656,7 +1651,7 @@ kbd {
 /* ── APP TITLE BAR ─────────────────────────────────────────────── */
 #app-titlebar {
   height: 28px;
-  background: linear-gradient(to right, #0d1b5e, #1565c0);
+  background: linear-gradient(to right, #0d1b5e, var(--accent));
   color: #fff;
   display: flex;
   align-items: center;
@@ -1684,7 +1679,7 @@ kbd {
 #ribbon-tabs {
   display: flex;
   align-items: flex-end;
-  background: linear-gradient(to bottom,#1565c0,#1255b0);
+  background: linear-gradient(to bottom,var(--accent),#1255b0);
   padding: 0 6px;
   gap: 1px;
 }
@@ -1885,7 +1880,7 @@ kbd {
 /* Compact inline member-type legend inside status bar */
 .sbar-legend { gap: 6px; }
 .sbar-leg-beam  { display:inline-block; width:18px; height:2.5px; background:#555; border-radius:1px; }
-.sbar-leg-col   { display:inline-block; width:18px; height:3.5px; background:#1565c0; border-radius:1px; }
+.sbar-leg-col   { display:inline-block; width:18px; height:3.5px; background:var(--accent); border-radius:1px; }
 .sbar-leg-brace { display:inline-block; width:16px; height:2px;   background:#888;
                   background-image: repeating-linear-gradient(90deg,#888 0 4px,transparent 4px 7px); }
 .sbar-leg-hinge { font-size:11px; color:#e65100; line-height:1; }
@@ -1908,7 +1903,7 @@ kbd {
   flex: unset !important;
 }
 .expl-count {
-  background: #1565c0; color: #fff;
+  background: var(--accent); color: #fff;
   border-radius: 8px; padding: 1px 6px;
   font-size: 9px; font-weight: 700; min-width: 18px; text-align: center;
 }
@@ -1930,14 +1925,14 @@ kbd {
 
 /* ACI ribbon buttons */
 .rib-btn.rib-aci, .rib-btn-lg.rib-aci {
-  border-color: #1565c0 !important;
+  border-color: var(--accent) !important;
   color: #0d47a1;
 }
 .rib-btn.rib-aci:hover, .rib-btn-lg.rib-aci:hover {
   background: #e3f2fd !important;
 }
 [data-theme="dark"] .rib-btn.rib-aci,
-[data-theme="dark"] .rib-btn-lg.rib-aci { color: #90caf9; border-color: #1565c0 !important; }
+[data-theme="dark"] .rib-btn-lg.rib-aci { color: #90caf9; border-color: var(--accent) !important; }
 
 /* ── PROPS PANEL — SELECTED ELEMENT ─────────────────────────── */
 #props-card {
@@ -1963,17 +1958,17 @@ kbd {
 .props-value.fail  { color: #c62828; }
 .props-highlight {
   background: linear-gradient(to right,#e3f2fd,transparent);
-  border-left: 3px solid #1565c0; padding-left: 7px;
+  border-left: 3px solid var(--accent); padding-left: 7px;
   margin-bottom: 2px;
 }
 .props-type-badge {
   display: inline-block;
   padding: 1px 8px; border-radius: 8px;
   font-size: 9px; font-weight: 800; text-transform: uppercase;
-  background: #1565c0; color: #fff;
+  background: var(--accent); color: #fff;
 }
 .props-type-badge.node-badge { background: #2e7d32; }
-.props-type-badge.beam-badge { background: #1565c0; }
+.props-type-badge.beam-badge { background: var(--accent); }
 .props-no-results {
   font-size: 10px; color: var(--text-muted); font-style: italic;
   padding: 2px 0;
@@ -2004,7 +1999,7 @@ kbd {
   align-items: center;
   justify-content: center;
   width: 18px; height: 18px;
-  background: #1565c0;
+  background: var(--accent);
   color: #fff;
   border-radius: 50%;
   font-size: 10px;
@@ -2039,7 +2034,7 @@ kbd {
 .qa-btn:hover  { opacity: .85; transform: translateY(-1px); }
 .qa-btn:active { transform: translateY(0); }
 .qa-dl { background: #6d4c41; border-color: #6d4c41; }
-.qa-ll { background: #1565c0; border-color: #1565c0; }
+.qa-ll { background: var(--accent); border-color: var(--accent); }
 .qa-wl { background: #00796b; border-color: #00796b; }
 .qa-eq { background: #c62828; border-color: #c62828; }
 .qa-sl { background: #4527a0; border-color: #4527a0; }
@@ -2050,7 +2045,7 @@ kbd {
   display: none;
   flex-direction: column;
   background: var(--bg-row-alt, #f5f5f5);
-  border-bottom: 2px solid #1565c0;
+  border-bottom: 2px solid var(--accent);
   padding: 8px;
   gap: 6px;
 }
@@ -2229,7 +2224,7 @@ kbd {
   color: var(--text-sec);
 }
 .wiz-step:hover { background: var(--bg-pane); color: var(--text); }
-.wiz-step.active { background: #1565c0; color: #fff; }
+.wiz-step.active { background: var(--accent); color: #fff; }
 .wiz-step-num {
   width: 20px; height: 20px;
   border-radius: 50%;
@@ -2249,7 +2244,7 @@ kbd {
   font-size: 13px; font-weight: 700;
   color: var(--text); margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 2px solid #1565c0;
+  border-bottom: 2px solid var(--accent);
 }
 /* Inputs */
 .wiz-lbl { font-size: 10px; color: var(--text-sec); display: block; margin-bottom: 3px; font-weight: 600; }
@@ -2259,7 +2254,7 @@ kbd {
   background: var(--bg-pane); color: var(--text);
   font-size: 11px;
 }
-.wiz-inp:focus { outline: 2px solid #1565c0; border-color: transparent; }
+.wiz-inp:focus { outline: 2px solid var(--accent); border-color: transparent; }
 /* Span chips */
 .wiz-span-chip {
   display: flex; align-items: center; gap: 3px;
@@ -2271,7 +2266,7 @@ kbd {
   font-size: 11px; color: var(--text); text-align: center;
   padding: 0;
 }
-.wiz-span-chip input:focus { outline: none; border-bottom: 1px solid #1565c0; }
+.wiz-span-chip input:focus { outline: none; border-bottom: 1px solid var(--accent); }
 /* Support picker */
 .wiz-sup-picker { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
 .wiz-sup-btn {
@@ -2280,8 +2275,8 @@ kbd {
   cursor: pointer; font-size: 11px; text-align: left;
   transition: all 0.12s;
 }
-.wiz-sup-btn:hover { background: #e3f2fd; border-color: #1565c0; }
-.wiz-sup-btn.active { background: #1565c0; color: #fff; border-color: #1565c0; font-weight: 700; }
+.wiz-sup-btn:hover { background: #e3f2fd; border-color: var(--accent); }
+.wiz-sup-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 /* Load cards */
 .wiz-load-card {
   padding: 10px; border: 1px solid var(--border);
@@ -2309,12 +2304,12 @@ kbd {
 #work-plane-bar.visible ~ #coords-display { bottom: 47px; }
 .wp-btn {
   padding: 3px 9px; font-size: 11px; font-weight: 700;
-  border: 1.5px solid #1565c0; border-radius: 5px;
-  background: transparent; color: #1565c0;
+  border: 1.5px solid var(--accent); border-radius: 5px;
+  background: transparent; color: var(--accent);
   cursor: pointer; transition: all 0.12s; white-space: nowrap;
 }
 .wp-btn:hover { background: #e3f2fd; }
-.wp-btn.active { background: #1565c0; color: #fff; }
+.wp-btn.active { background: var(--accent); color: #fff; }
 
 /* ── DEFINE MATERIALS DIALOG ─────────────────────────────────────── */
 .mat-section-hdr {
@@ -2342,7 +2337,7 @@ kbd {
   display: flex; align-items: center; gap: 8px;
 }
 .mat-list-item:hover { background: var(--bg2); }
-.mat-list-item.selected { background: #1565c0; color: #fff; }
+.mat-list-item.selected { background: var(--accent); color: #fff; }
 .mat-list-item .mat-color-dot {
   width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
 }
@@ -2350,7 +2345,7 @@ kbd {
 /* ── GRID SYSTEM DIALOG ──────────────────────────────────────────── */
 .gs-section-title {
   font-size: 10px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .07em; color: #1565c0;
+  letter-spacing: .07em; color: var(--accent);
   margin-bottom: 5px;
 }
 .gs-inp {
@@ -2358,7 +2353,7 @@ kbd {
   border: 1px solid var(--border); border-radius: 4px;
   background: var(--bg-pane); color: var(--text);
 }
-.gs-inp:focus { outline: 2px solid #1565c0; border-color: transparent; }
+.gs-inp:focus { outline: 2px solid var(--accent); border-color: transparent; }
 .gs-lbl { font-size: 10px; color: var(--text-sec); white-space: nowrap; }
 .gs-unit { font-size: 10px; color: var(--text-sec); }
 /* Grid rows in tables */
@@ -2385,14 +2380,14 @@ kbd {
   color: var(--text-sec); transition: background 0.12s;
 }
 .set-nav:hover { background: var(--bg-pane); color: var(--text); }
-.set-nav.active { background: #1565c0; color: #fff; }
+.set-nav.active { background: var(--accent); color: #fff; }
 .set-panel { display: none; }
 .set-panel.active { display: block; }
 .set-section-title {
   font-size: 10px; font-weight: 800; text-transform: uppercase;
   letter-spacing: .07em; color: var(--text-sec);
   margin-bottom: 7px; padding-bottom: 4px;
-  border-bottom: 1.5px solid #1565c0;
+  border-bottom: 1.5px solid var(--accent);
 }
 .set-row {
   display: flex; align-items: center; gap: 10px;

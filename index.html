@@ -5155,6 +5155,13 @@
 <script src="js/aci/ch6-columns.js"></script>
 
 <script>
+// HTML-escape for anything user/import-controlled that goes through innerHTML.
+function _saEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g,
+    function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+}
+</script>
+<script>
 // ── ASCE 7-16 §3 Dead Load Calculator UI ───────────────────────────
 window.ASCE7_Ch3_UI = (function() {
   const layers = [];  // [{ materialId, thickness_m, load_kNm2 }]
@@ -5313,7 +5320,7 @@ window.ASCE7_Ch3_UI = (function() {
       const psf = ASCE7_Ch3.kNm2_to_psf(l.load_kNm2);
       const thickStr = mat && mat.density_kNm3 !== undefined ? `${(l.thickness_m*1000).toFixed(0)} mm` : '—';
       return `<tr style="border-bottom:1px solid var(--border-tbl)">
-        <td style="padding:5px 8px;font-size:12px">${mat ? mat.name : l.materialId}</td>
+        <td style="padding:5px 8px;font-size:12px">${_saEsc(mat ? mat.name : l.materialId)}</td>
         <td style="text-align:center;font-size:12px">${thickStr}</td>
         <td style="text-align:right;padding-right:8px;font-size:12px;font-weight:600">${l.load_kNm2.toFixed(3)}</td>
         <td style="text-align:right;padding-right:8px;font-size:12px">${psf.toFixed(1)}</td>
@@ -6881,7 +6888,7 @@ window.runGenModal = function(type) {
       html += '<div class="props-section-title">Point Loads</div>';
       loads.forEach(ld => {
         const cas = cases.find(c => c.id === ld.caseId);
-        const casName = cas ? cas.name : 'Case?';
+        const casName = _saEsc(cas ? cas.name : 'Case?');
         if (Math.abs(ld.fx) > 0.001) html += '<div class="props-row"><span class="props-label">' + casName + ' Fx</span><span class="props-value">' + fmt(ld.fx,2) + ' kN</span></div>';
         if (Math.abs(ld.fy) > 0.001) html += '<div class="props-row"><span class="props-label">' + casName + ' Fy</span><span class="props-value">' + fmt(ld.fy,2) + ' kN</span></div>';
         if (Math.abs(ld.m)  > 0.001) html += '<div class="props-row"><span class="props-label">' + casName + ' M</span><span class="props-value">' + fmt(ld.m,2) + ' kNm</span></div>';
@@ -6921,7 +6928,7 @@ window.runGenModal = function(type) {
     // Identity + geometry
     html += '<div class="props-section props-highlight">';
     html += '<div class="props-row"><span class="props-label">ID</span><span class="props-value">' +
-            (SA.getMemberLabel ? SA.getMemberLabel(beam) : String(beam.id)) + '</span></div>';
+            _saEsc(SA.getMemberLabel ? SA.getMemberLabel(beam) : String(beam.id)) + '</span></div>';
     html += '<div class="props-row"><span class="props-label">Nodes</span><span class="props-value">N' + beam.node1 + ' → N' + beam.node2 + '</span></div>';
     if (len !== null) html += '<div class="props-row"><span class="props-label">Length</span><span class="props-value">' + fmt(len,3) + ' m</span></div>';
     html += '<div class="props-row"><span class="props-label">Hinges</span><span class="props-value">' + (beam.hingeStart?'Start ':'') + (beam.hingeEnd?'End':'') + ((!beam.hingeStart&&!beam.hingeEnd)?'None':'') + '</span></div>';
@@ -6953,7 +6960,7 @@ window.runGenModal = function(type) {
     // Section properties
     if (sec) {
       html += '<div class="props-section">';
-      html += '<div class="props-section-title">Section — ' + (sec.name||'') + '</div>';
+      html += '<div class="props-section-title">Section — ' + _saEsc(sec.name||'') + '</div>';
       html += '<div class="props-row"><span class="props-label">E</span><span class="props-value">' + fmt(sec.E,0) + ' GPa</span></div>';
       html += '<div class="props-row"><span class="props-label">A</span><span class="props-value">' + fmt(sec.A,1) + ' cm²</span></div>';
       html += '<div class="props-row"><span class="props-label">I</span><span class="props-value">' + fmt(sec.I,1) + ' cm⁴</span></div>';
@@ -6968,7 +6975,7 @@ window.runGenModal = function(type) {
       html += '<div class="props-section-title">Applied Loads</div>';
       loads.forEach(ld => {
         const cas = cases.find(c => c.id === ld.caseId);
-        const casName = cas ? cas.name : 'Case?';
+        const casName = _saEsc(cas ? cas.name : 'Case?');
         if (ld.type === 'beam_dist') {
           if (Math.abs(ld.fy) > 0.001) html += '<div class="props-row"><span class="props-label">' + casName + ' UDL wy</span><span class="props-value">' + fmt(ld.fy,2) + ' kN/m</span></div>';
           if (Math.abs(ld.fx) > 0.001) html += '<div class="props-row"><span class="props-label">' + casName + ' UDL wx</span><span class="props-value">' + fmt(ld.fx,2) + ' kN/m</span></div>';
@@ -7090,8 +7097,8 @@ window.runGenModal = function(type) {
           const mt = (bm.memberType && bm.memberType !== 'auto') ? bm.memberType : 'auto';
           typeMap[mt] = (typeMap[mt]||0) + 1;
         });
-        const secLines = Object.entries(secMap).map(([k,v]) => `<div class="props-row"><span class="props-label">${k}</span><span class="props-value">${v} member${v>1?'s':''}</span></div>`).join('');
-        const typeLines = Object.entries(typeMap).map(([k,v]) => `<div class="props-row"><span class="props-label">${k}</span><span class="props-value">${v}</span></div>`).join('');
+        const secLines = Object.entries(secMap).map(([k,v]) => `<div class="props-row"><span class="props-label">${_saEsc(k)}</span><span class="props-value">${v} member${v>1?'s':''}</span></div>`).join('');
+        const typeLines = Object.entries(typeMap).map(([k,v]) => `<div class="props-row"><span class="props-label">${_saEsc(k)}</span><span class="props-value">${v}</span></div>`).join('');
         card.innerHTML = `
           <div class="props-section props-highlight">
             <div class="props-row"><span class="props-label">Members</span><span class="props-value" style="font-weight:700">${selBeams.length}</span></div>
@@ -7568,7 +7575,7 @@ window.WIZ = (function(){
     var SA = window.SA;
     var secs = SA ? SA.sections || [] : [];
     var opts = secs.map(function(s){
-      return '<option value="' + s.id + '">' + s.name + ' (A=' + (s.A||0).toFixed(0) + 'cm², I=' + (s.I||0).toFixed(0) + 'cm⁴)</option>';
+      return '<option value="' + s.id + '">' + _saEsc(s.name) + ' (A=' + (s.A||0).toFixed(0) + 'cm², I=' + (s.I||0).toFixed(0) + 'cm⁴)</option>';
     }).join('') || '<option value="">No sections — add in Explorer</option>';
     ['wiz-section'].forEach(function(id){
       var el = document.getElementById(id);
@@ -7593,7 +7600,7 @@ window.WIZ = (function(){
       '<div><span style="color:var(--text-sec);font-size:9px">I</span><br><strong>' + (sec.I||0).toFixed(0) + ' cm⁴</strong></div>' +
       '<div><span style="color:var(--text-sec);font-size:9px">fy</span><br><strong>' + (sec.fy||235) + ' MPa</strong></div>' +
       '<div><span style="color:var(--text-sec);font-size:9px">ρ</span><br><strong>' + (sec.rho||78.5) + ' kN/m³</strong></div>' +
-      '<div><span style="color:var(--text-sec);font-size:9px">Name</span><br><strong>' + sec.name + '</strong></div>' +
+      '<div><span style="color:var(--text-sec);font-size:9px">Name</span><br><strong>' + _saEsc(sec.name) + '</strong></div>' +
       '</div>';
   }
 
@@ -7601,7 +7608,7 @@ window.WIZ = (function(){
     var SA = window.SA;
     var cases = SA ? SA.loadCases || [] : [];
     var opts = cases.map(function(c){
-      return '<option value="' + c.id + '">' + c.name + ' (' + c.type + ')</option>';
+      return '<option value="' + c.id + '">' + _saEsc(c.name) + ' (' + _saEsc(c.type) + ')</option>';
     }).join('') || '<option value="1">Dead Load</option>';
     ['wiz-lc-dl','wiz-lc-ll'].forEach(function(id){
       var el = document.getElementById(id);
@@ -7637,7 +7644,7 @@ window.WIZ = (function(){
     var inputs = document.querySelectorAll('#wiz-span-list .wiz-span-chip input');
     var SA = window.SA;
     var secs = SA ? SA.sections || [] : [];
-    var opts = secs.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+    var opts = secs.map(function(s){ return '<option value="'+s.id+'">'+_saEsc(s.name)+'</option>'; }).join('');
     list.innerHTML = '';
     inputs.forEach(function(inp, i){
       var row = document.createElement('div');
@@ -7756,7 +7763,7 @@ window.WIZ = (function(){
         '<strong>Spans:</strong> ' + spans.join(' + ') + ' m = <strong>' + spans.reduce(function(a,b){return a+b;},0).toFixed(1) + ' m total</strong>' +
         (ohL?' + ' + ohL + 'm overhang left':'') + (ohR?' + ' + ohR + 'm overhang right':'') +
         '<br><strong>Supports:</strong> Left=' + lSup + ' · Mid=' + mSup + ' · Right=' + rSup +
-        '<br><strong>Section:</strong> ' + (sec ? sec.name : 'not assigned') +
+        '<br><strong>Section:</strong> ' + _saEsc(sec ? sec.name : 'not assigned') +
         '<br><strong>Members:</strong> ' + allL.length + ' · <strong>Nodes:</strong> ' + (allL.length+1);
     }
   }
@@ -7902,6 +7909,11 @@ window.GRIDSYS = (function(){
     drawPreview();
   }
 
+  // Self-contained on purpose: the module is evaluated on its own in tests.
+  function _gsEsc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+
   function renderTable(axis, lines, sel, ordLbl) {
     var tb = document.getElementById('gs-tbody-'+axis);
     if (!tb) return;
@@ -7911,10 +7923,10 @@ window.GRIDSYS = (function(){
       // reads the controls, not the column headings above them, so without
       // this the table is "checkbox, edit text, edit text, combo box, combo
       // box" repeated once per grid line. `who` says which line is in hand.
-      var who = ' ' + axis.toUpperCase() + ' grid line ' + (g.id || (i + 1));
+      var who = ' ' + axis.toUpperCase() + ' grid line ' + _gsEsc(g.id || (i + 1));
       return '<tr class="'+(isSel?'gs-selected':'')+'" onclick="GRIDSYS.toggleSel(\''+axis+'\','+i+')">' +
         '<td><input type="checkbox" '+(isSel?'checked':'')+' aria-label="Select'+who+'" onclick="event.stopPropagation();GRIDSYS.toggleSel(\''+axis+'\','+i+')"></td>' +
-        '<td><input type="text" value="'+g.id+'" class="gs-inp" style="width:40px" aria-label="Name of'+who+'" onchange="GRIDSYS.updateField(\''+axis+'\','+i+',\'id\',this.value)"></td>' +
+        '<td><input type="text" value="'+_gsEsc(g.id)+'" class="gs-inp" style="width:40px" aria-label="Name of'+who+'" onchange="GRIDSYS.updateField(\''+axis+'\','+i+',\'id\',this.value)"></td>' +
         '<td><input type="number" value="'+g.ord+'" step="0.5" class="gs-inp" style="width:70px" aria-label="Ordinate of'+who+'" onchange="GRIDSYS.updateField(\''+axis+'\','+i+',\'ord\',+this.value)"></td>' +
         '<td><select class="gs-inp" aria-label="Visibility of'+who+'" onchange="GRIDSYS.updateField(\''+axis+'\','+i+',\'visible\',this.value===\'Yes\')">' +
           '<option '+(g.visible?'selected':'')+'>Yes</option>' +
@@ -8284,7 +8296,7 @@ window.PROPS_SEC = (function(){
       var secs = SA.sections || [];
       picker.innerHTML = secs.map(function(s){
         return '<option value="' + s.id + '"' + (s.id === bm.sectionId ? ' selected' : '') + '>' +
-          s.name + ' (A=' + (s.A||0).toFixed(1) + 'cm², I=' + (s.I||0).toFixed(0) + 'cm⁴)</option>';
+          _saEsc(s.name) + ' (A=' + (s.A||0).toFixed(1) + 'cm², I=' + (s.I||0).toFixed(0) + 'cm⁴)</option>';
       }).join('') || '<option value="">No sections defined</option>';
     }
 
@@ -8965,9 +8977,9 @@ window.SM = (function(){
     var html = '';
     filtered.forEach(function(bm) {
       var sec = sections.find(function(s){ return s.id === bm.sectionId; });
-      var secName = sec ? sec.name : '—';
+      var secName = _saEsc(sec ? sec.name : '—');
       var type = getMemberType(bm);
-      var label = getMemberLabel(bm);
+      var label = _saEsc(getMemberLabel(bm));
       var typeColor = type === 'column' ? '#1a237e' : type === 'brace' ? '#e65100' : '#1565c0';
       var checked = _checkedBeams[bm.id] ? 'checked' : '';
       var highlighted = _selSecId && sec && sec.id === _selSecId ? 'background:rgba(21,101,192,0.08);' : '';
@@ -9001,7 +9013,7 @@ window.SM = (function(){
       var textCol = isActive ? 'color:rgba(255,255,255,0.8)' : 'color:var(--text-sec)';
       html += '<div style="padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;' + bg + '" onclick="SM.selectSection(' + s.id + ')">' +
         '<div style="display:flex;align-items:center;gap:6px">' +
-        '<span style="font-weight:700;font-size:11px">' + s.name + '</span>' +
+        '<span style="font-weight:700;font-size:11px">' + _saEsc(s.name) + '</span>' +
         '<span style="' + textCol + ';font-size:9px;margin-left:auto">used by ' + usedBy + ' member' + (usedBy===1?'':'s') + '</span>' +
         '</div>' +
         '<div style="' + textCol + ';font-size:10px;margin-top:2px">' +
@@ -9272,7 +9284,7 @@ window.SETTINGS = (function(){
           'sa_undo_history_v1':'Undo/redo history',
           'framesolver_units':'Unit preference',
           'sa_display_prefs_v1':'Display preferences'
-        }[item.key]||(item.key.startsWith('sa_file_')?'Saved file: '+item.key.replace('sa_file_',''):item.key);
+        }[item.key]||(item.key.startsWith('sa_file_')?'Saved file: '+_saEsc(item.key.replace('sa_file_','')):_saEsc(item.key));
         return '<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px solid var(--border);font-size:10px;align-items:center">'
           +'<span style="color:var(--text);font-family:monospace">'+lbl+'</span>'
           +'<span style="color:var(--text-sec);white-space:nowrap">'+fmt(item.bytes)+'</span>'
@@ -9287,9 +9299,9 @@ window.SETTINGS = (function(){
       fl.innerHTML=saved.length?saved.map(function(s){
         var nm=s.key.replace('sa_file_','');
         return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px">'
-          +'<span style="flex:1">📄 '+nm+'</span>'
+          +'<span style="flex:1">📄 '+_saEsc(nm)+'</span>'
           +'<span style="color:var(--text-sec);font-size:10px">'+fmt(s.bytes)+'</span>'
-          +'<button class="btn-xs btn-red" onclick="SETTINGS.deleteSavedFile(\''+nm+'\')" style="padding:1px 6px;font-size:9px">✕</button>'
+          +'<button class="btn-xs btn-red" onclick="SETTINGS.deleteSavedFile(decodeURIComponent(\''+encodeURIComponent(nm).replace(/'/g,'%27')+'\'))" style="padding:1px 6px;font-size:9px">✕</button>'
           +'</div>';
       }).join(''):'<div style="color:var(--text-sec);font-size:10px;padding:4px 0">No manually saved files</div>';
     }
@@ -9487,8 +9499,8 @@ function _renderList() {
     var sel = m.id === _selId;
     return '<div class="mat-list-item'+(sel?' selected':'')+'" onclick="MAT_UI.select('+m.id+')" ondblclick="MAT_UI.openProps()">' +
       '<div class="mat-color-dot" style="background:'+m.color+'"></div>' +
-      '<span>'+m.name+'</span>' +
-      '<span style="margin-left:auto;font-size:9px;opacity:0.7">'+m.type+'</span>' +
+      '<span>'+_saEsc(m.name)+'</span>' +
+      '<span style="margin-left:auto;font-size:9px;opacity:0.7">'+_saEsc(m.type)+'</span>' +
       '</div>';
   }).join('');
 }

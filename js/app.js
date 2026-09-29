@@ -150,14 +150,23 @@ const App = (() => {
    * the second slot 1, and so on — maximally separated. Shared with extrude.js
    * so the solids and the wireframe agree.
    */
+  // The order-of-first-use map is built once and reused: drawBeams() asks for
+  // it once per member on every render (which mousemove/wheel drive), and
+  // rebuilding it per call made that O(n^2). It is dropped at the start of each
+  // render() and whenever the model revision changes, and is also keyed on the
+  // beams array identity/length so an unnoticed swap cannot serve a stale map.
+  let _secOrderCache = null;
   function sectionColorIndex(sectionId) {
-    const order = [];
-    for (const b of beams) {
-      if (b.sectionId == null) continue;
-      if (order.indexOf(b.sectionId) === -1) order.push(b.sectionId);
+    if (!_secOrderCache || _secOrderCache.beams !== beams || _secOrderCache.n !== beams.length) {
+      const map = new Map();
+      for (const b of beams) {
+        if (b.sectionId == null) continue;
+        if (!map.has(b.sectionId)) map.set(b.sectionId, map.size);
+      }
+      _secOrderCache = { beams, n: beams.length, map };
     }
-    const i = order.indexOf(sectionId);
-    return i < 0 ? 0 : i;
+    const i = _secOrderCache.map.get(sectionId);
+    return i === undefined ? 0 : i;
   }
 
   function sectionColor(sectionId) {
@@ -217,7 +226,7 @@ const App = (() => {
   let _resultsRev = -1;
   let _staleWarned = false;
 
-  function bumpModelRev() { _modelRev++; }
+  function bumpModelRev() { _modelRev++; _secOrderCache = null; }
 
   function resultsAreCurrent() {
     // The revision catches edits; the emptiness test catches any mutation path
@@ -1053,6 +1062,7 @@ const App = (() => {
   }
 
   function render() {
+    _secOrderCache = null;
     clearLabelBoxes();
     // Compute strain energy map if needed
     if (views.energy) {
@@ -5337,7 +5347,7 @@ const App = (() => {
     const fDec = US ? (US.current().decimals.force  || 3) : 3;
     const mDec = US ? (US.current().decimals.moment || 3) : 3;
 
-    let html = `<div style="padding:5px 10px;background:var(--bg-pane);border-bottom:1px solid var(--border-tbl);font-size:11px;font-weight:600;color:var(--text-sec)">Showing: ${caseName} (${activeDisplay.type})</div>`;
+    let html = `<div style="padding:5px 10px;background:var(--bg-pane);border-bottom:1px solid var(--border-tbl);font-size:11px;font-weight:600;color:var(--text-sec)">Showing: ${escapeIssue(caseName)} (${escapeIssue(activeDisplay.type)})</div>`;
 
     // ── Reactions ──────────────────────────────────────────────────────
     if (res.is3D) {
@@ -5656,13 +5666,13 @@ const App = (() => {
       const secOpts =
         (secOk ? '' : '<option value="" selected>— none —</option>') +
         sections.map(s =>
-          `<option value="${s.id}" ${bm.sectionId===s.id?'selected':''}>${s.name}</option>`
+          `<option value="${s.id}" ${bm.sectionId===s.id?'selected':''}>${escapeIssue(s.name)}</option>`
         ).join('');
       const mt = bm.memberType || 'auto';
       const lbl = getMemberLabel(bm);
       const typeColor = getMemberType(bm) === 'column' ? '#1a237e' : getMemberType(bm) === 'brace' ? '#e65100' : '#2e7d32';
       tr.innerHTML = `
-        <td style="font-weight:700;color:${typeColor}">${lbl}</td>
+        <td style="font-weight:700;color:${typeColor}">${escapeIssue(lbl)}</td>
         <td>${bm.node1}</td>
         <td>${bm.node2}</td>
         <td><select data-bid="${bm.id}" data-f="sectionId" aria-label="Member ${escapeIssue(lbl)} section"${secOk ? '' : ' style="color:#c62828;font-weight:700;border-color:#c62828"'}>${secOpts}</select></td>
@@ -6364,9 +6374,9 @@ const App = (() => {
     for (const key of keys) {
       const name = key.replace('sa_file_', '');
       const li = document.createElement('li');
-      li.innerHTML = `<span>${name}</span><div style="display:flex;gap:4px">
-        <button class="btn-xs btn-blue" style="padding:1px 6px;font-size:10px" data-load="${name}">Load</button>
-        <button class="btn-xs btn-red"  style="padding:1px 6px;font-size:10px" data-rm="${name}">✕</button>
+      li.innerHTML = `<span>${escapeIssue(name)}</span><div style="display:flex;gap:4px">
+        <button class="btn-xs btn-blue" style="padding:1px 6px;font-size:10px" data-load="${escapeIssue(name)}">Load</button>
+        <button class="btn-xs btn-red"  style="padding:1px 6px;font-size:10px" data-rm="${escapeIssue(name)}">✕</button>
       </div>`;
       li.querySelector('[data-load]').addEventListener('click', () => loadFile(name));
       li.querySelector('[data-rm]').addEventListener('click', () => {
@@ -6466,6 +6476,9 @@ const App = (() => {
     const perSpan = document.getElementById('wiz-per-span-sec').checked;
     const perSpanSels = perSpan ? Array.from(document.querySelectorAll('#wiz-per-span-list select')) : [];
 
+    const applySW = !!(document.getElementById('wiz-selfwt') && document.getElementById('wiz-selfwt').checked);
+    const wizBeamIds = [];
+
     snapshot();
 
     // Build overhang + main spans + overhang
@@ -6510,6 +6523,7 @@ const App = (() => {
       const hStart = hingeIdxs.includes(i);
       const hEnd   = hingeIdxs.includes(i + 1);
       const bid_new = nextId.beam++;
+      wizBeamIds.push(bid_new);
       beams.push({ id: bid_new, node1: newNodeIds[i], node2: newNodeIds[i+1],
                    sectionId: spanSecId, memberType: mtype,
                    hingeStart: hStart, hingeEnd: hEnd });
@@ -6532,6 +6546,16 @@ const App = (() => {
           loads.push({ id: nextId.load++, type: 'beam_point', elementId: bmTarget.id, fy: fy_pl, pos: pos_pl, caseId: lcDl });
         }
       });
+    }
+
+    // "Apply Self-Weight": only to the beams this wizard just made, under the
+    // dead-load case. applySelfWeight() reads its scope from the selection, so
+    // borrow it for the call and put the user's own selection back after.
+    if (applySW) {
+      const prevSel = multiSel.beams;
+      multiSel.beams = new Set(wizBeamIds);
+      try { applySelfWeight(0, lcDl, 'sel'); }
+      finally { multiSel.beams = prevSel; }
     }
 
     updateNodeTable(); updateBeamTable(); updateLoadTable();
@@ -6990,10 +7014,10 @@ const App = (() => {
         ? PropertyModifiers.summaryBadge(b.id) : '';
       // Which combination drove this member's worst utilisation.
       const gov = b.governedBy
-        ? `<div style="font-size:9px;color:var(--text-sec);margin-top:1px">gov: ${b.governedBy}</div>` : '';
+        ? `<div style="font-size:9px;color:var(--text-sec);margin-top:1px">gov: ${escapeIssue(b.governedBy)}</div>` : '';
       return `<tr>
-        <td>${b.label}</td>
-        <td style="font-size:11px">${b.secName}${modbadge}${gov}</td>
+        <td>${escapeIssue(b.label)}</td>
+        <td style="font-size:11px">${escapeIssue(b.secName)}${modbadge}${gov}</td>
         <td>${bar}</td>
         <td><span style="padding:1px 6px;border-radius:10px;background:${col}22;color:${col};font-size:11px;font-weight:700;">${b.overall}</span></td>
         <td style="text-align:center">
@@ -7586,7 +7610,7 @@ const App = (() => {
 
     // Build section dropdown
     const secOpts = sections.map(s =>
-      `<option value="${s.id}" ${s.id===bm.sectionId?'selected':''}>${s.name} (A=${s.A}cm², I=${s.I}cm⁴)</option>`
+      `<option value="${s.id}" ${s.id===bm.sectionId?'selected':''}>${escapeIssue(s.name)} (A=${s.A}cm², I=${s.I}cm⁴)</option>`
     ).join('');
 
     // Populate the modal
@@ -8290,66 +8314,88 @@ const App = (() => {
                    type: t,
                    caseId: loadCases.some(c => c.id === pickedCase) ? pickedCase : firstCase };
 
+      // Every numeric field is validated, not just the area-load ones: a blank or
+      // non-numeric entry used to be stored as NaN (or a silent 0) and only
+      // surfaced later as an opaque solver failure.
+      const bad = [];
+      const num = (id, label) => {
+        const raw = document.getElementById(id).value;
+        const v = raw === '' || raw == null ? NaN : +raw;
+        if (!Number.isFinite(v)) { bad.push(label); return 0; }
+        return v;
+      };
+      const rejectBad = () => {
+        if (_editingLoadId === null && ld.id === nextId.load - 1) nextId.load--;
+        toast('Invalid load input: ' + [...new Set(bad)].join(', ') + ' must be a number', 'error');
+      };
+
       /** Helper: compute {fx, fy} from current direction mode */
       const getFxFy = () => {
         const dm = loadDirMode;
         if (dm === 'angle') {
-          const mag = +document.getElementById('load-mag-val').value;
-          const ang = +document.getElementById('load-ang-val').value * Math.PI / 180;
+          const mag = num('load-mag-val','Magnitude');
+          const ang = num('load-ang-val','Angle') * Math.PI / 180;
           return { fx: mag * Math.cos(ang), fy: mag * Math.sin(ang) };
         } else if (dm === 'horiz') {
-          return { fx: +document.getElementById('load-fx-val').value, fy: 0 };
+          return { fx: num('load-fx-val','Fx'), fy: 0 };
         } else if (dm === 'custom') {
-          return { fx: +document.getElementById('load-fx-val').value, fy: +document.getElementById('load-fy-val').value };
+          return { fx: num('load-fx-val','Fx'), fy: num('load-fy-val','Fy') };
         } else { // vert
-          return { fx: 0, fy: +document.getElementById('load-fy-val').value };
+          return { fx: 0, fy: num('load-fy-val','Fy') };
         }
       };
 
       if (t === 'nodal') {
         ld.nodeId = +document.getElementById('load-node-sel').value;
+        if (!nodes.some(n => n.id === ld.nodeId)) bad.push('Node');
         const ff = getFxFy(); ld.fx = ff.fx; ld.fy = ff.fy; ld.m = 0;
       } else if (t === 'moment') {
         ld.nodeId = +document.getElementById('load-node-sel').value;
+        if (!nodes.some(n => n.id === ld.nodeId)) bad.push('Node');
         ld.fx = 0; ld.fy = 0;
-        ld.m = +document.getElementById('load-m-val').value;
+        ld.m = num('load-m-val','Moment');
       } else if (t === 'beam_point') {
         ld.elementId = +document.getElementById('load-beam-sel').value;
+        if (!beams.some(b => b.id === ld.elementId)) bad.push('Member');
         const ff = getFxFy(); ld.fx = ff.fx; ld.fy = ff.fy;
-        ld.pos = +document.getElementById('load-pos-val').value;
+        ld.pos = num('load-pos-val','Position');
         ld.m   = 0;
       } else if (t === 'beam_dist') {
         ld.elementId = +document.getElementById('load-beam-sel').value;
+        if (!beams.some(b => b.id === ld.elementId)) bad.push('Member');
         const ff = getFxFy(); ld.fx = ff.fx; ld.fy = ff.fy; ld.m = 0;
       } else if (t === 'beam_trap') {
         ld.elementId = +document.getElementById('load-beam-sel').value;
+        if (!beams.some(b => b.id === ld.elementId)) bad.push('Member');
         const dm = loadDirMode;
         if (dm === 'angle') {
-          const mag1 = +document.getElementById('load-mag-val').value;
-          const mag2 = +document.getElementById('load-fy2-val').value; // end magnitude
-          const ang  = +document.getElementById('load-ang-val').value * Math.PI / 180;
+          const mag1 = num('load-mag-val','Magnitude');
+          const mag2 = num('load-fy2-val','End magnitude'); // end magnitude
+          const ang  = num('load-ang-val','Angle') * Math.PI / 180;
           ld.fx  = mag1 * Math.cos(ang); ld.fy  = mag1 * Math.sin(ang);
           ld.fx2 = mag2 * Math.cos(ang); ld.fy2 = mag2 * Math.sin(ang);
         } else if (dm === 'horiz') {
-          const v = +document.getElementById('load-fx-val').value;
+          const v = num('load-fx-val','Fx');
           ld.fx = v; ld.fy = 0; ld.fx2 = v; ld.fy2 = 0;
         } else if (dm === 'custom') {
-          ld.fx  = +document.getElementById('load-fx-val').value;
-          ld.fy  = +document.getElementById('load-fy-val').value;
+          ld.fx  = num('load-fx-val','Fx');
+          ld.fy  = num('load-fy-val','Fy');
           ld.fx2 = ld.fx;
-          ld.fy2 = +document.getElementById('load-fy2-val').value;
+          ld.fy2 = num('load-fy2-val','End magnitude');
         } else { // vert
-          ld.fx = 0; ld.fy  = +document.getElementById('load-fy-val').value;
-          ld.fx2 = 0; ld.fy2 = +document.getElementById('load-fy2-val').value;
+          ld.fx = 0; ld.fy  = num('load-fy-val','Fy');
+          ld.fx2 = 0; ld.fy2 = num('load-fy2-val','End magnitude');
         }
         ld.m = 0;
       } else if (t === 'area_load') {
         const raw = document.getElementById('load-area-nodes').value;
         const ids = raw.split(/[\s,]+/).map(Number).filter(n => !isNaN(n) && n > 0);
-        if (ids.length < 3) { toast('Area load needs ≥ 3 node IDs', 'error'); return; }
+        if (ids.length < 3) { if (_editingLoadId === null && ld.id === nextId.load - 1) nextId.load--; toast('Area load needs ≥ 3 node IDs', 'error'); return; }
         ld.nodeIds = ids;
-        ld.p = +document.getElementById('load-pressure-val').value;
+        ld.p = num('load-pressure-val','Pressure');
       }
+
+      if (bad.length) { rejectBad(); return; }
 
       snapshot();
       if (_editingLoadId !== null) {
