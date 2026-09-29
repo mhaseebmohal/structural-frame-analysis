@@ -10412,8 +10412,15 @@ const App = (() => {
     if (!r || !r.A) { toast('No section data', 'error'); return; }
     const name = `Compound §${sections.length + 1}`;
     // Use existing fy from first section if available, else 355 MPa default
-    const fy = sections.length > 0 ? (sections[0].fy || 355) : 355;
-    const E  = sections.length > 0 ? (sections[0].E  || 210) : 210;
+    const fy  = sections.length > 0 ? (sections[0].fy  || 355)  : 355;
+    const E   = sections.length > 0 ? (sections[0].E   || 210)  : 210;
+    // rho used to be hardcoded to 1.0 — since self-weight is generated as
+    // -rho*A, every beam using a section built here had its self-weight
+    // silently understated by ~78x against the app's own steel default
+    // (78.5 kN/m³, used everywhere else a section is missing one — see
+    // cs-rho's own fallback a few hundred lines up). Same inherit-or-default
+    // pattern as fy/E just above.
+    const rho = sections.length > 0 ? (sections[0].rho || 78.5) : 78.5;
     const newSec = {
       id:   Date.now(),
       name,
@@ -10423,7 +10430,7 @@ const App = (() => {
       Iy:   +r.Iy && +r.Iy.toFixed(4),
       I:    +r.Ix.toFixed(4),   // alias
       fy,
-      rho:  1.0
+      rho
     };
     sections.push(newSec);
     toast(`Section "${name}" added — A=${r.A.toFixed(1)} cm² Ix=${r.Ix.toFixed(0)} cm⁴`, 'success');
