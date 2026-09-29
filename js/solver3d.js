@@ -408,9 +408,10 @@ function solveFrame3D(nodes, beams, sections, loads, settlements) {
     if (ld.mz != null) F[i*6+5] += ld.mz;
   }
 
-  // ── Copy Ko to K then apply BCs (penalty method) ──────────────────
-  const K = Ko.map(r => Float64Array.from(r));
-  const P = 1e14;
+  // ── Boundary conditions by exact DOF partitioning ─────────────────
+  // Restrained DOFs are removed from the system (as solver.js does) rather than
+  // penalised: only the free DOFs are solved, and restrained DOFs take their
+  // prescribed value (0, or a settlement). No 1e14 terms, so no lost precision.
 
   const suppDofs = new Set();
   for (const nd of nodes) {
@@ -437,51 +438,73 @@ function solveFrame3D(nodes, beams, sections, loads, settlements) {
     for (const d of fixed) suppDofs.add(i * 6 + d);
   }
 
+  // ── Spring supports — stiffness added straight onto the diagonal ───
+  // support === 'spring' with springKx / springKy / springKm, same fields as the
+  // 2D solver, mapped onto global X, vertical Z (DOF 2, Z-up) and Mz. Optional
+  // springKz (global Y), springKrx and springKry cover the remaining DOFs.
+  // Kept separately: reactions use Ko (element stiffness only), so the spring
+  // DOF's reaction comes out as -k*u, the force the spring applies.
+  const springK = new Float64Array(ndof);
+  for (const nd of nodes) {
+    if (nd.support !== 'spring') continue;
+    const i = nIdx[nd.id];
+    const map = [[nd.springKx, 0], [nd.springKz, 1], [nd.springKy, 2],
+                 [nd.springKrx, 3], [nd.springKry, 4], [nd.springKm, 5]];
+    for (const [k, d] of map) if (k > 0) springK[i * 6 + d] += k;
+  }
+
+  // ── Prescribed support displacements (settlements) ────────────────
+  //   dir 'u' → global X (DOF 0), 'v' → vertical, global Z (DOF 2, Z-up),
+  //   anything else → in-plane rotation Mz (DOF 5) — matching the load convention.
+  // As in the 2D solver a settlement constrains its DOF to the given value even
+  // where the node had no support there.
+  const prescribed = {};
+  for (const st of (settlements || [])) {
+    const i = nIdx[st.nodeId];
+    if (i === undefined) continue;
+    const d = i * 6 + (st.dir === 'u' ? 0 : st.dir === 'v' ? 2 : 5);
+    suppDofs.add(d);
+    prescribed[d] = st.value || 0;
+  }
+
   // ── Rotational DOFs left with no stiffness by a moment release ───
-  // Mirrors solver.js's guard: a node whose only framing member has both
-  // bending rotations released at that end (e.g. a hinged cantilever tip
-  // aligned with a global axis) has an exactly-zero row in Ko for the global
-  // rotation(s) perpendicular to the member axis — genuinely no stiffness,
-  // not a mechanism, since nothing resists or needs to resist that rotation.
-  // Under the penalty method a zero row is not "excluded" the way DOF
-  // partitioning excludes it in 2D, so it would trip the singularity check
-  // and reject an otherwise perfectly solvable hinged 3D model. With no
-  // stiffness AND no applied moment the equation is 0 = 0, so pinning the DOF
-  // to zero via the same penalty every support uses changes no real result.
+  // A node whose only framing member has both bending rotations released at
+  // that end has an exactly-zero row for the perpendicular global rotation(s):
+  // not a mechanism, nothing resists or needs to resist it. With no stiffness
+  // AND no applied moment the equation is 0 = 0, so constrain the DOF to zero.
   for (const nd of nodes) {
     const i = nIdx[nd.id];
     for (const localD of [3, 4, 5]) {           // θx, θy, θz
       const d = i * 6 + localD;
-      if (suppDofs.has(d)) continue;
+      if (suppDofs.has(d) || springK[d] > 0) continue;
       let touched = false;
       for (let j = 0; j < ndof; j++) { if (Ko[d][j] !== 0) { touched = true; break; } }
       if (!touched && Math.abs(F[d]) < 1e-12) suppDofs.add(d);
     }
   }
 
-  // ── Prescribed support displacements (settlements) ────────────────
-  // solveFrame3D previously ignored settlements entirely — it did not even
-  // accept them — so a settlement defined in the UI worked in 2D and was
-  // silently dropped in 3D. With the penalty method the fix is direct: drive
-  // the penalised DOF toward the prescribed value instead of zero.
-  //   dir 'u' → global X (DOF 0), 'v' → vertical, global Z (DOF 2, Z-up),
-  //   anything else → in-plane rotation Mz (DOF 5) — matching the load convention.
-  const prescribed = {};
-  for (const st of (settlements || [])) {
-    const i = nIdx[st.nodeId];
-    if (i === undefined) continue;
-    const d = st.dir === 'u' ? 0 : st.dir === 'v' ? 2 : 5;
-    prescribed[i * 6 + d] = st.value || 0;
-  }
+  // ── Partition and solve K_ff · U_f = F_f − K_fc · U_c ─────────────
+  const freeDofs = [];
+  for (let d = 0; d < ndof; d++) if (!suppDofs.has(d)) freeDofs.push(d);
+  const conDofs = [...suppDofs];
+  const nf = freeDofs.length;
 
-  for (const dof of suppDofs) {
-    K[dof][dof] += P;
-    F[dof] = P * (prescribed[dof] || 0);
+  let U_f = [];
+  if (nf > 0) {
+    const K_ff = freeDofs.map((r, ri) => {
+      const row = new Float64Array(nf);
+      for (let c = 0; c < nf; c++) row[c] = Ko[r][freeDofs[c]];
+      row[ri] += springK[r];
+      return row;
+    });
+    const rhs = freeDofs.map(d => {
+      let v = F[d];
+      for (const c of conDofs) { const u = prescribed[c]; if (u) v -= Ko[d][c] * u; }
+      return v;
+    });
+    U_f = gaussSolve3D(K_ff, rhs);
   }
-
-  // ── Solve K·U = F ────────────────────────────────────────────────
-  const U = gaussSolve3D(K, Array.from(F));
-  if (!U) {
+  if (!U_f) {
     // The most common cause by far is a planar frame analysed in 3D: the 2D
     // support types restrain nothing out of plane, so the structure is free to
     // swing about the vertical axis. Say so rather than just "check supports".
@@ -499,6 +522,12 @@ function solveFrame3D(nodes, beams, sections, loads, settlements) {
                       `analysis: ${skipped.join('; ')}.` };
     return { error: 'Structural matrix is singular.' + hint };
   }
+
+
+  // Reassemble the full displacement vector.
+  const U = new Array(ndof).fill(0);
+  freeDofs.forEach((d, k) => { U[d] = U_f[k]; });
+  for (const d of conDofs) U[d] = prescribed[d] || 0;
 
   // ── Sanity bound on the answer ───────────────────────────────────
   // Same guard as the 2D solver (solver.js): a near-mechanism is not singular
@@ -566,7 +595,9 @@ function solveFrame3D(nodes, beams, sections, loads, settlements) {
     // fixedDOF mask, with `support` unset/'none', was skipped here entirely —
     // solved correctly (the DOF was genuinely restrained) but reported as
     // carrying no reaction at all, silently dropping real support forces.
-    if ((nd.support && nd.support !== 'none') || nd.fixedDOF) {
+    let restrained = (nd.support && nd.support !== 'none') || !!nd.fixedDOF;
+    for (let d = 0; d < 6 && !restrained; d++) if (prescribed[i * 6 + d] !== undefined) restrained = true;
+    if (restrained) {
       let Rx = 0, Ry = 0, Rz = 0, Mx = 0, My = 0, Mz = 0;
       for (let j = 0; j < ndof; j++) {
         Rx += Ko[i*6]   [j] * U[j];

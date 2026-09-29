@@ -7733,6 +7733,80 @@ group('app.js / index.html: escaping, load validation, wizard self-weight, colou
         !/projectToMember/.test(html) && !/placeholder — we'll do proper check/.test(html));
 }
 
+group('Foundation punching shear net of soil pressure inside perimeter');
+{
+  const FD = FoundationDesign;
+  // Hand calc: N=1200, c=0.4x0.4, d=0.44, L=B=3.
+  // A_ctrl = 0.16 + 4(0.44)(0.8) + pi(4)(0.44^2) = 4.0008 m2
+  // q = 1200/9 = 133.33 kPa; V_Ed = 1200 - 133.33*4.0008 = 666.56 kN
+  const p = FD.punchingShear(1200, 0.4, 0.4, 0.44, 25, 500, 1000, 1000, 0, 0, { L: 3, B: 3 });
+  near('punching control area inside 2d perimeter', p.A_ctrl_m2, 4.0008, 1e-3);
+  near('punching net V_Ed at 2d', p.V_Ed_2d_kN, 666.56, 0.05);
+  const u1 = 4 * 400 + 4 * Math.PI * 440;
+  near('punching v_Ed_2d = V_net/(u1 d)', p.v_Ed_2d_MPa, 666.56e3 / (u1 * 440), 1e-3);
+  near('punching face check keeps full column load', p.v_Ed_face_MPa, 1200e3 / (1600 * 440), 1e-3);
+  const pOld = FD.punchingShear(1200, 0.4, 0.4, 0.44, 25, 500, 1000, 1000, 0, 0);
+  near('without L,B the full load is used (unchanged)', pOld.V_Ed_2d_kN, 1200, 1e-6);
+  // Net demand is bounded by the column load however large the footing gets
+  const p6 = FD.punchingShear(1200, 0.4, 0.4, 0.44, 25, 500, 1000, 1000, 0, 0, { L: 6, B: 6 });
+  check('net punching demand stays below the column load for any footing size', p6.V_Ed_2d_kN > p.V_Ed_2d_kN && p6.V_Ed_2d_kN < 1200);
+  // Perimeter larger than footing -> nothing punches
+  const pSm = FD.punchingShear(1200, 0.4, 0.4, 0.44, 25, 500, 1000, 1000, 0, 0, { L: 1.5, B: 1.5 });
+  near('perimeter wider than footing gives zero net shear', pSm.V_Ed_2d_kN, 0, 1e-9);
+  // optimizeSize with the default 0.5 m thickness now finds a solution
+  const o = FD.optimizeSize({ N_G: 500, N_Q: 300 });
+  check('optimizeSize finds a footing for N=800 kN at h_f=0.5',
+        !o.error && o.result.summary.pass && o.recommended_L <= 4.0, o.error || `L=${o.recommended_L}`);
+}
+
+group('3D solver — exact DOF partitioning vs hand solutions');
+{
+  const L = 4, EI = 210e6 * (20000 / 1e8);         // vertical (Z) bending uses Ix/I = 20000 cm4
+  const bm = [{ id: 1, node1: 1, node2: 2, sectionId: 1 }];
+  const N = (sup2, extra) => [{ id: 1, x: 0, y: 0, z: 0, support: 'fixed' },
+                              Object.assign({ id: 2, x: L, y: 0, z: 0, support: sup2 }, extra || {})];
+
+  // Cantilever tip deflection PL^3/3EI
+  const c = solveFrame3D(N('none'), bm, SEC, [{ type: 'nodal', nodeId: 2, fy: -10 }], []);
+  check('cantilever solves', !!c.success, c.error);
+  near('cantilever tip deflection PL^3/3EI', c.disp[2].w, -10 * L ** 3 / (3 * EI), 1e-6);
+  near('cantilever base shear = P', c.reactions[1].Rz, 10, 1e-6);
+  near('cantilever base moment = PL', Math.abs(c.reactions[1].My), 10 * L, 1e-6);
+
+  // Propped cantilever, UDL: roller 3wL/8, fixed 5wL/8, fixed-end moment wL^2/8
+  const w = 10, p = solveFrame3D(N('roller'), bm, SEC, [{ type: 'beam_dist', elementId: 1, fy: -w }], []);
+  check('propped beam solves', !!p.success, p.error);
+  near('propped roller reaction 3wL/8', p.reactions[2].Rz, 3 * w * L / 8, 1e-6);
+  near('propped fixed reaction 5wL/8', p.reactions[1].Rz, 5 * w * L / 8, 1e-6);
+  near('propped fixed moment wL^2/8', Math.abs(p.reactions[1].My), w * L * L / 8, 1e-6);
+  near('propped equilibrium', sumR(p, 'Rz'), w * L, 1e-9);
+  near('restrained DOF has exactly zero displacement', p.disp[2].w, 0, 1e-12);
+
+  // Spring at cantilever tip: d = P / (k + 3EI/L^3); spring reaction = -k d
+  const k = 2000, s = solveFrame3D(N('spring', { springKy: k }), bm, SEC, [{ type: 'nodal', nodeId: 2, fy: -10 }], []);
+  check('spring model solves', !!s.success, s.error);
+  const d = -10 / (k + 3 * EI / L ** 3);
+  near('spring tip deflection', s.disp[2].w, d, 1e-6);
+  near('spring reaction = -k*u', s.reactions[2].Rz, -k * d, 1e-6);
+  near('spring model equilibrium', sumR(s, 'Rz'), 10, 1e-9);
+
+  // Settlement of the roller: reaction 3EI*delta/L^3, beam moment 3EI*delta/L^2
+  const dl = -0.01, t = solveFrame3D(N('roller'), bm, SEC, [], [{ nodeId: 2, dir: 'v', value: dl }]);
+  check('settlement model solves', !!t.success, t.error);
+  near('settled node takes prescribed displacement', t.disp[2].w, dl, 1e-12);
+  near('settlement reaction 3EI*d/L^3', t.reactions[2].Rz, 3 * EI * dl / L ** 3, 1e-6);
+  near('settlement equilibrium', sumR(t, 'Rz'), 0, 1e-6);
+
+  // Settlement on a node with no support at that DOF prescribes it (as in 2D)
+  const t2 = solveFrame3D(N('none'), bm, SEC, [], [{ nodeId: 2, dir: 'v', value: dl }]);
+  near('settlement on unsupported DOF is applied', t2.disp[2].w, dl, 1e-12);
+
+  // Custom fixedDOF mask, no support: acts as a real restraint with reactions
+  const m = solveFrame3D([{ id: 1, x: 0, y: 0, z: 0, fixedDOF: [true, true, true, true, true, true] },
+                          { id: 2, x: L, y: 0, z: 0 }], bm, SEC, [{ type: 'nodal', nodeId: 2, fy: -10 }], []);
+  near('fixedDOF-only support reacts', m.reactions[1].Rz, 10, 1e-6);
+}
+
 } catch (e) {
   // See the comment on the opening `try` above: this is a hard crash (a bug
   // in a test, or in code it exercises), not a normal check() failure, and

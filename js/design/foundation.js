@@ -216,8 +216,13 @@ const FoundationDesign = (() => {
 
   // ── PUNCHING SHEAR (EC2 6.4) ──────────────────────────────────────────────
   // At column face and at 2d control perimeter
-  function punchingShear(N_uls, col_L, col_B, d_eff, fck, fyk, As_x_mm2pm, As_y_mm2pm, e_x = 0, e_y = 0) {
+  function punchingShear(N_uls, col_L, col_B, d_eff, fck, fyk, As_x_mm2pm, As_y_mm2pm, e_x = 0, e_y = 0, opts = {}) {
     if (!window.RCDesign) return { error: 'RCDesign module not loaded' };
+    // N_uls is the factored COLUMN load. If opts.L and opts.B (footing plan
+    // dimensions, m) are given, the 2d-perimeter demand is the net load
+    // (EC2 6.4.2(1) / ACI 318 22.6): V_Ed = N - q_net * A_inside_perimeter,
+    // with q_net = N/(L*B) taken as uniform (moment effects are carried by
+    // beta). Without them the full load is used (conservative, old behaviour).
     const c1  = col_L * 1000, c2 = col_B * 1000;  // mm
     const d_  = d_eff * 1000;                        // mm
 
@@ -258,9 +263,18 @@ const FoundationDesign = (() => {
     const e   = Math.hypot(e_x * 1000, e_y * 1000);   // mm
     const β   = e > 0 ? Math.max(1, 1 + 0.6 * Math.PI * e / (c1 + c2 + 4 * d_)) : 1.0;
 
-    const V_Ed_N  = N_uls * 1000;   // N
+    // Area inside the 2d control perimeter (rectangle + 2d strips + 4 quarter
+    // circles of radius 2d), capped at the footing area.
+    const A_ctrl_m2 = (c1 * c2 + 4 * d_ * (c1 + c2) + Math.PI * 4 * d_ * d_) / 1e6;
+    const hasArea   = opts && opts.L > 0 && opts.B > 0;
+    const A_fdn     = hasArea ? opts.L * opts.B : 0;
+    const A_in      = hasArea ? Math.min(A_ctrl_m2, A_fdn) : 0;
+    const q_net     = hasArea ? N_uls / A_fdn : 0;               // kPa
+    const V_red_kN  = hasArea ? Math.max(0, N_uls - q_net * A_in) : N_uls;
+
+    const V_Ed_N  = N_uls * 1000;   // N — full load at column face (EC2 6.4.5)
     const v_Ed_face = β * V_Ed_N / (u0 * d_);          // MPa at column face
-    const v_Ed_2d   = β * V_Ed_N / (u1 * d_);          // MPa at 2d perimeter
+    const v_Ed_2d   = β * (V_red_kN * 1000) / (u1 * d_);  // MPa at 2d perimeter
 
     const pass_face = v_Ed_face <= vRd_max;
     const pass_2d   = v_Ed_2d   <= vRd_c;
@@ -273,6 +287,8 @@ const FoundationDesign = (() => {
       u0_mm:       +u0.toFixed(1),
       u1_mm:       +u1.toFixed(1),
       beta:        +β.toFixed(4),
+      V_Ed_2d_kN:  +V_red_kN.toFixed(3),
+      A_ctrl_m2:   +A_ctrl_m2.toFixed(4),
       rho_1:       +ρ1.toFixed(6),
       k:           +k.toFixed(4),
       vRd_max_MPa: +vRd_max.toFixed(3),
@@ -417,8 +433,12 @@ const FoundationDesign = (() => {
     // factor β entirely — understating punching demand for any biaxially
     // loaded footing. As_y_mm2pm was also a guessed `As_x * (L/B)` rather
     // than the real Y-direction design above.
-    const punch = punchingShear(N_uls, col_L, col_B, d_eff, fck, fyk,
-      As_x, As_y, Mx_uls / N_uls, My_uls / N_uls);
+    // Column load only: footing/soil self-weight is carried by the soil directly
+    // beneath it and does not punch. Demand at 2d is net of the soil pressure
+    // inside the control perimeter, so enlarging the footing cannot worsen it.
+    const N_col_uls = γG * N_G + γQ * N_Q + γQ * N_W;
+    const punch = punchingShear(N_col_uls, col_L, col_B, d_eff, fck, fyk,
+      As_x, As_y, N_col_uls > 0 ? Mx_uls / N_col_uls : 0, N_col_uls > 0 ? My_uls / N_col_uls : 0, { L, B });
     checks.push(punch);
 
     // ── Summary ─────────────────────────────────────────────────────────
