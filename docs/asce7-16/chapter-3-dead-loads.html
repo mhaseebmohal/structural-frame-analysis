@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCE 7-16 Chapter 3 — Dead Loads | Structural Analyser Docs</title>
+  <style>
+    :root {
+      --bg:#f5f7fa; --panel:#fff; --border:#dde1e8;
+      --accent:#1565c0; --accent2:#0d47a1;
+      --text:#1a1a2e; --muted:#64748b;
+      --green:#2e7d32; --radius:8px; --shadow:0 2px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font:15px/1.6 'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); }
+    .page-header { background:linear-gradient(135deg,#0d47a1 0%,#1565c0 60%,#1976d2 100%); color:#fff; padding:32px 48px 28px; }
+    .page-header .breadcrumb { font-size:12px; opacity:0.75; margin-bottom:8px; }
+    .page-header .breadcrumb a { color:rgba(255,255,255,0.85); text-decoration:none; }
+    .page-header h1 { font-size:26px; font-weight:700; margin-bottom:4px; }
+    .page-header .sub { opacity:0.82; font-size:13px; }
+    .container { max-width:900px; margin:0 auto; padding:32px 24px 80px; }
+    .sec-head { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:28px 0 14px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+    .sec-head .ref { font-size:11px; background:#e8f0fe; color:var(--accent); border-radius:10px; padding:2px 8px; font-weight:600; text-transform:none; letter-spacing:0; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; box-shadow:var(--shadow); margin-bottom:16px; }
+    .card h3 { font-size:15px; font-weight:700; margin-bottom:10px; color:var(--accent2); }
+    .tool-cta { background:linear-gradient(135deg,#e8f0fe,#f0f4ff); border:2px solid var(--accent); border-radius:var(--radius); padding:20px 24px; margin-bottom:24px; }
+    .tool-cta h3 { font-size:16px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+    .tool-cta p { font-size:13px; color:var(--muted); margin-bottom:12px; }
+    .btn-tool { display:inline-block; background:var(--accent); color:#fff; padding:10px 22px; border-radius:6px; text-decoration:none; font-weight:700; font-size:14px; transition:background .15s; }
+    .btn-tool:hover { background:var(--accent2); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { background:#e8f0fe; color:var(--accent2); font-weight:700; padding:9px 12px; text-align:left; border-bottom:2px solid #c5d4f0; }
+    td { padding:7px 12px; border-bottom:1px solid var(--border); }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#f8faff; }
+    .mono { font-family:monospace; font-weight:700; color:var(--accent); }
+    .cat-badge { display:inline-block; font-size:10px; border-radius:8px; padding:1px 7px; font-weight:700; }
+    .cat-conc { background:#e3f2fd; color:#0d47a1; }
+    .cat-steel { background:#fce4ec; color:#880e4f; }
+    .cat-msnry { background:#fff3e0; color:#bf360c; }
+    .cat-timber { background:#e8f5e9; color:#2e7d32; }
+    .cat-finish { background:#f3e5f5; color:#6a1b9a; }
+    .cat-soil { background:#fbe9e7; color:#bf360c; }
+    footer { text-align:center; font-size:12px; color:var(--muted); padding:24px; border-top:1px solid var(--border); margin-top:32px; }
+    footer a { color:var(--accent); text-decoration:none; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="breadcrumb">
+    <a href="../../index.html">Structural Analyser</a> ›
+    <a href="index.html">ASCE 7-16</a> ›
+    Chapter 3 — Dead Loads
+  </div>
+  <h1>Chapter 3 — Dead Loads</h1>
+  <div class="sub">§3.1 Self-weight · §3.2 Soil Lateral Pressure · Table C3-1 Unit Weights · Table 3.1-1 Minimum Design Dead Loads</div>
+</header>
+
+<div class="container">
+
+  <!-- CTA linking to in-app tool -->
+  <div class="tool-cta">
+    <h3>&#9651; Dead Load Calculator — Live Tool in Structural Analyser</h3>
+    <p>
+      The interactive dead load calculator is built into the application. Stack floor system layers
+      (slab + screed + finish + ceiling + MEP), see the running total in kN/m² and psf, and apply
+      the result as a UDL directly to selected beams in your model.
+    </p>
+    <a href="../../index.html" class="btn-tool">&#8594; Open App → Tools Tab → Dead Load Calculator</a>
+  </div>
+
+  <!-- §3.1 Scope -->
+  <div class="sec-head">§3.1 — Dead Loads <span class="ref">§3.1</span></div>
+  <div class="card">
+    <h3>Definition and Scope</h3>
+    <p style="font-size:13px;color:var(--muted);">
+      Dead loads consist of the weight of all materials of construction incorporated into the building
+      including, but not limited to, walls, floors, roofs, ceilings, stairways, built-in partitions,
+      finishes, cladding, and other similarly incorporated architectural and structural items, and
+      fixed service equipment including the weight of cranes.
+    </p>
+    <ul style="list-style:none;font-size:13px;margin-top:10px;">
+      <li style="padding:3px 0">› <strong>§3.1.1</strong>: Weight of construction — self-weight from unit weights in Table C3-1</li>
+      <li style="padding:3px 0">› <strong>§3.1.2</strong>: Floor fills, finish, ceiling, MEP — typically specified as area loads</li>
+      <li style="padding:3px 0">› <strong>Movable Partitions</strong>: Treated as live load when movable; treated as dead load when fixed. Minimum 0.96 kN/m² (20 psf) per §4.3.2 when movable.</li>
+    </ul>
+  </div>
+
+  <!-- Table C3-1 key values -->
+  <div class="sec-head">Table C3-1 — Minimum Densities for Design Loads <span class="ref">App. C, Table C3-1</span></div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th>Density (kN/m³)</th>
+          <th>Density (pcf)</th>
+          <th>Category</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Normal-weight Concrete (NWC)</td><td class="mono">23.56</td><td class="mono">150</td><td><span class="cat-badge cat-conc">Concrete</span></td><td>Includes reinforcement allowance</td></tr>
+        <tr><td>Lightweight Concrete 110 pcf</td><td class="mono">17.27</td><td class="mono">110</td><td><span class="cat-badge cat-conc">Concrete</span></td><td>Structural LWC</td></tr>
+        <tr><td>Lightweight Concrete 100 pcf</td><td class="mono">15.71</td><td class="mono">100</td><td><span class="cat-badge cat-conc">Concrete</span></td><td>Structural LWC</td></tr>
+        <tr><td>Steel</td><td class="mono">77.01</td><td class="mono">490</td><td><span class="cat-badge cat-steel">Metal</span></td><td>—</td></tr>
+        <tr><td>Aluminum</td><td class="mono">26.60</td><td class="mono">169</td><td><span class="cat-badge cat-steel">Metal</span></td><td>—</td></tr>
+        <tr><td>Brick (solid, clay)</td><td class="mono">18.85</td><td class="mono">120</td><td><span class="cat-badge cat-msnry">Masonry</span></td><td>—</td></tr>
+        <tr><td>CMU Block (normal-weight)</td><td class="mono">17.27</td><td class="mono">110</td><td><span class="cat-badge cat-msnry">Masonry</span></td><td>—</td></tr>
+        <tr><td>Timber — Douglas Fir</td><td class="mono">5.65</td><td class="mono">36</td><td><span class="cat-badge cat-timber">Timber</span></td><td>—</td></tr>
+        <tr><td>Timber — Southern Pine</td><td class="mono">6.28</td><td class="mono">40</td><td><span class="cat-badge cat-timber">Timber</span></td><td>—</td></tr>
+        <tr><td>Granite / Marble</td><td class="mono">26.38</td><td class="mono">168</td><td><span class="cat-badge cat-msnry">Stone</span></td><td>—</td></tr>
+        <tr><td>Soil (dry sand/gravel)</td><td class="mono">15.71</td><td class="mono">100</td><td><span class="cat-badge cat-soil">Soil</span></td><td>§3.2 lateral earth</td></tr>
+        <tr><td>Soil (saturated)</td><td class="mono">18.85</td><td class="mono">120</td><td><span class="cat-badge cat-soil">Soil</span></td><td>§3.2 lateral earth</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Table 3.1-1 key values -->
+  <div class="sec-head">Table 3.1-1 — Minimum Design Dead Loads (Area Loads) <span class="ref">§3.1, Table 3.1-1</span></div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Load (kN/m²)</th>
+          <th>Load (psf)</th>
+          <th>Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Ceramic / Quarry Tile 25 mm</td><td class="mono">0.53</td><td class="mono">11.0</td><td><span class="cat-badge cat-finish">Floor Finish</span></td></tr>
+        <tr><td>Ceramic Tile 13 mm</td><td class="mono">0.27</td><td class="mono">5.5</td><td><span class="cat-badge cat-finish">Floor Finish</span></td></tr>
+        <tr><td>Hardwood Flooring 25 mm</td><td class="mono">0.14</td><td class="mono">2.8</td><td><span class="cat-badge cat-finish">Floor Finish</span></td></tr>
+        <tr><td>Carpet + pad</td><td class="mono">0.05</td><td class="mono">1.0</td><td><span class="cat-badge cat-finish">Floor Finish</span></td></tr>
+        <tr><td>Mortar Bed 25 mm</td><td class="mono">0.57</td><td class="mono">12.0</td><td><span class="cat-badge cat-finish">Floor Finish</span></td></tr>
+        <tr><td>Gypsum Board 16 mm (1 layer)</td><td class="mono">0.24</td><td class="mono">5.0</td><td><span class="cat-badge cat-finish">Ceiling</span></td></tr>
+        <tr><td>Acoustic Tile (suspended)</td><td class="mono">0.10</td><td class="mono">2.0</td><td><span class="cat-badge cat-finish">Ceiling</span></td></tr>
+        <tr><td>Built-up Roofing (BUR)</td><td class="mono">0.35</td><td class="mono">7.0</td><td><span class="cat-badge cat-msnry">Roofing</span></td></tr>
+        <tr><td>Concrete Roof Tile</td><td class="mono">0.77</td><td class="mono">16.0</td><td><span class="cat-badge cat-msnry">Roofing</span></td></tr>
+        <tr><td>Gravel Ballast 25 mm</td><td class="mono">0.43</td><td class="mono">9.0</td><td><span class="cat-badge cat-msnry">Roofing</span></td></tr>
+        <tr><td>Metal Deck (corrugated steel)</td><td class="mono">0.14</td><td class="mono">3.0</td><td><span class="cat-badge cat-msnry">Roofing</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- §3.2 Soil -->
+  <div class="sec-head">§3.2 — Forces Due to Soil and Hydrostatic Pressure <span class="ref">§3.2</span></div>
+  <div class="card">
+    <h3>Lateral Earth Pressure (H load)</h3>
+    <p style="font-size:13px;color:var(--muted);">
+      In addition to the dead loads listed in §3.1, structures below grade must be designed for the
+      lateral pressure of adjoining soil. Per §3.2, soil loads and hydrostatic pressure are classified
+      as <strong>H</strong> loads in ASCE 7-16 §1.2.2 and enter load combinations per §2.3.1 and §2.4.1.
+    </p>
+    <ul style="list-style:none;font-size:13px;margin-top:10px;">
+      <li style="padding:3px 0">› Active earth pressure: Ka = (1 − sin φ) / (1 + sin φ)</li>
+      <li style="padding:3px 0">› At-rest earth pressure: K₀ = 1 − sin φ (normally consolidated)</li>
+      <li style="padding:3px 0">› Hydrostatic pressure: γ_water = 9.81 kN/m³ (62.4 pcf)</li>
+      <li style="padding:3px 0">› H loads appear in LRFD combos with factors 1.6H (unfav.) or 0.9D + 1.6H</li>
+    </ul>
+  </div>
+
+  <!-- Implementation note -->
+  <div class="card" style="border-left:4px solid var(--green);">
+    <h3 style="color:var(--green);">✓ Implemented in Structural Analyser</h3>
+    <ul style="list-style:none;font-size:13px;">
+      <li style="padding:3px 0">› <strong>js/asce7/ch3-dead-loads.js</strong> — <code>window.ASCE7_Ch3</code>: 50+ materials from Table C3-1 &amp; Table 3.1-1</li>
+      <li style="padding:3px 0">› <strong>Dead Load Calculator</strong> — Tools tab in the app: stack layers, compute kN/m², apply UDL to beams</li>
+      <li style="padding:3px 0">› 5 preset floor systems: RC slab, flat slab, composite, BUR roof, timber</li>
+      <li style="padding:3px 0">› Direct integration with load cases — applies to selected DL load case</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Reference: <strong>ASCE/SEI 7-16</strong> — Minimum Design Loads and Associated Criteria for Buildings and Other Structures<br>
+  American Society of Civil Engineers, 2016 &nbsp;|&nbsp;
+  <a href="chapter-2-load-combinations.html">← Chapter 2</a> &nbsp;|&nbsp;
+  <a href="index.html">ASCE 7-16 Index</a>
+</footer>
+
+</body>
+</html>

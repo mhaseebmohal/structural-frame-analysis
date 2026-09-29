@@ -1,0 +1,33 @@
+{
+  "name": "structural-analyser",
+  "version": "2.0.0",
+  "description": "Web-based 2D/3D structural frame analysis and design tool (FEM, ACI 318-19, EC2, EC3)",
+  "author": "Haseeb",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "npx serve -p 5500 -s .",
+    "dev": "npx serve -p 5500 -s . --cors",
+    "build-sections": "python create_sections_db.py",
+    "lint": "eslint js",
+    "pretest": "npm run lint",
+    "test": "node tests/regression.js",
+    "check": "npm test"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "serve": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "structural-engineering",
+    "FEM",
+    "frame-analysis",
+    "ACI-318",
+    "eurocode",
+    "SAP2000",
+    "ETABS"
+  ]
+}

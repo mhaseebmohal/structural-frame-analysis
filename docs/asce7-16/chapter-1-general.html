@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCE 7-16 Chapter 1 — General | Structural Analyser Docs</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --panel: #fff; --border: #dde1e8;
+      --accent: #1565c0; --accent2: #0d47a1;
+      --text: #1a1a2e; --muted: #64748b;
+      --green: #2e7d32; --orange: #e65100; --red: #c62828;
+      --radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --cat-I: #43a047; --cat-II: #1565c0; --cat-III: #fb8c00; --cat-IV: #c62828;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font: 15px/1.6 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    .page-header {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 60%, #1976d2 100%);
+      color: #fff; padding: 32px 48px 28px;
+    }
+    .page-header .breadcrumb { font-size: 12px; opacity: 0.75; margin-bottom: 8px; }
+    .page-header .breadcrumb a { color: rgba(255,255,255,0.85); text-decoration: none; }
+    .page-header .breadcrumb a:hover { opacity: 1; text-decoration: underline; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .sub { opacity: 0.82; font-size: 13px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── Section headings */
+    .sec-head {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin: 36px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+    }
+    .sec-head .ref { font-size: 11px; background: #e8f0fe; color: var(--accent); border-radius: 10px; padding: 2px 8px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+    /* ── Cards */
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--accent2); }
+
+    /* ── Risk Category Grid */
+    .rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .rc-btn {
+      border: 2px solid transparent; border-radius: var(--radius);
+      padding: 14px 16px; cursor: pointer; background: var(--panel);
+      text-align: left; transition: all 0.18s; box-shadow: var(--shadow);
+    }
+    .rc-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+    .rc-btn.active { box-shadow: 0 0 0 3px currentColor; }
+    .rc-btn[data-cat="I"]   { color: var(--cat-I);   border-color: var(--cat-I);   }
+    .rc-btn[data-cat="II"]  { color: var(--cat-II);  border-color: var(--cat-II);  }
+    .rc-btn[data-cat="III"] { color: var(--cat-III); border-color: var(--cat-III); }
+    .rc-btn[data-cat="IV"]  { color: var(--cat-IV);  border-color: var(--cat-IV);  }
+    .rc-btn.active[data-cat="I"]   { background: #f1f8f1; }
+    .rc-btn.active[data-cat="II"]  { background: #e8f0fe; }
+    .rc-btn.active[data-cat="III"] { background: #fff3e0; }
+    .rc-btn.active[data-cat="IV"]  { background: #ffebee; }
+    .rc-btn .cat-id { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .rc-btn .cat-name { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
+    .rc-btn .cat-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    /* ── Importance Factor display */
+    .if-panel {
+      background: linear-gradient(135deg, #e8f0fe, #f0f4ff);
+      border: 1px solid #c5d4f0; border-radius: var(--radius);
+      padding: 20px 24px; display: none;
+    }
+    .if-panel.visible { display: block; }
+    .if-panel h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+    .if-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .if-item { text-align: center; }
+    .if-item .if-sym { font-size: 22px; font-weight: 800; font-family: 'Georgia', serif; }
+    .if-item .if-val { font-size: 26px; font-weight: 900; margin: 4px 0; }
+    .if-item .if-label { font-size: 11px; color: var(--muted); }
+    .if-item .if-ref   { font-size: 10px; color: var(--accent); }
+
+    /* ── Occupancy examples */
+    .ex-list { list-style: none; margin-top: 10px; }
+    .ex-list li { padding: 4px 0; font-size: 13px; display: flex; gap: 8px; }
+    .ex-list li::before { content: '›'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    /* ── Table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #e8f0fe; color: var(--accent2); font-weight: 700; padding: 9px 12px; text-align: left; border-bottom: 2px solid #c5d4f0; }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8faff; }
+    .mono { font-family: monospace; font-weight: 700; color: var(--accent); }
+
+    /* ── Notional Load Calculator */
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 580px) { .calc-grid { grid-template-columns: 1fr; } }
+    .form-row { display: flex; flex-direction: column; gap: 4px; }
+    .form-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .form-row input { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px; background: #f8faff; }
+    .form-row input:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .calc-btn {
+      margin-top: 8px; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; padding: 10px 22px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .calc-btn:hover { background: var(--accent2); }
+
+    .result-box {
+      background: #f0f4ff; border: 1px solid #c5d4f0;
+      border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-box h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
+    .result-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    .result-table th { background: #dce8ff; padding: 7px 10px; font-weight: 700; }
+    .result-table td { padding: 6px 10px; border-bottom: 1px solid #c5d4f0; }
+    .result-table tr:last-child td { border-bottom: none; }
+    .eq-box {
+      background: #fff; border: 1px solid #c5d4f0; border-radius: 6px;
+      padding: 10px 16px; font-family: monospace; font-size: 15px;
+      font-weight: 700; color: var(--accent); margin-bottom: 12px; text-align: center;
+    }
+
+    /* ── Formula block */
+    .formula {
+      background: #0d47a1; color: #fff; border-radius: var(--radius);
+      padding: 14px 20px; font-family: monospace; font-size: 16px;
+      font-weight: 700; text-align: center; margin: 12px 0;
+      letter-spacing: 0.04em;
+    }
+    .formula .note { font-size: 11px; opacity: 0.8; font-weight: 400; margin-top: 4px; font-family: 'Segoe UI', sans-serif; letter-spacing: 0; }
+
+    /* ── Definition table */
+    .def-sym { font-family: monospace; font-weight: 700; color: var(--accent); min-width: 40px; display: inline-block; }
+    .badge { display: inline-block; font-size: 11px; border-radius: 10px; padding: 2px 8px; font-weight: 700; }
+    .badge-dl { background: #fce4ec; color: #ad1457; }
+    .badge-ll { background: #e8f5e9; color: #2e7d32; }
+    .badge-sl { background: #e3f2fd; color: #0d47a1; }
+    .badge-wl { background: #fff3e0; color: #e65100; }
+    .badge-eq { background: #fbe9e7; color: #bf360c; }
+    .badge-other { background: #f3e5f5; color: #6a1b9a; }
+
+    footer { text-align: center; font-size: 12px; color: var(--muted); padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="breadcrumb">
+    <a href="../../index.html">Structural Analyser</a> ›
+    <a href="index.html">ASCE 7-16</a> ›
+    Chapter 1 — General
+  </div>
+  <h1>Chapter 1 — General</h1>
+  <div class="sub">Scope · Definitions · Risk Categories · Importance Factors · Notional Loads · §1.4.2, §1.5, §1.5.1</div>
+</header>
+
+<div class="container">
+
+  <!-- ── §1.5 Risk Categories ───────────────────────────────────── -->
+  <div class="sec-head">
+    §1.5 &amp; Table 1.5-1 — Risk Categories
+    <span class="ref">Table 1.5-1</span>
+  </div>
+
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+    Select a category to see the nature of occupancy, applicable importance factors,
+    and example building types. Risk Category II is the default for most buildings.
+  </p>
+
+  <div class="rc-grid">
+    <button class="rc-btn" data-cat="I" onclick="selectRC('I')">
+      <div class="cat-id">Risk Category I</div>
+      <div class="cat-name">Low Hazard</div>
+      <div class="cat-desc">Minor risk to human life on failure</div>
+    </button>
+    <button class="rc-btn active" data-cat="II" onclick="selectRC('II')">
+      <div class="cat-id">Risk Category II</div>
+      <div class="cat-name">Standard (Default)</div>
+      <div class="cat-desc">Applies to all buildings not listed in I, III, or IV</div>
+    </button>
+    <button class="rc-btn" data-cat="III" onclick="selectRC('III')">
+      <div class="cat-id">Risk Category III</div>
+      <div class="cat-name">Substantial Hazard</div>
+      <div class="cat-desc">Large assemblies, schools, healthcare</div>
+    </button>
+    <button class="rc-btn" data-cat="IV" onclick="selectRC('IV')">
+      <div class="cat-id">Risk Category IV</div>
+      <div class="cat-name">Essential Facilities</div>
+      <div class="cat-desc">Must remain operational after design events</div>
+    </button>
+  </div>
+
+  <!-- Importance Factors panel -->
+  <div class="if-panel visible" id="if-panel">
+    <h4 id="if-title">Risk Category II — Importance Factors (Table 7.3-1, Table 11.5-1)</h4>
+    <div class="if-grid">
+      <div class="if-item">
+        <div class="if-sym" id="if-snow-sym">I<sub>s</sub></div>
+        <div class="if-val" id="if-snow-val">1.00</div>
+        <div class="if-label">Snow Importance Factor</div>
+        <div class="if-ref">§7.3.4 Table 7.3-1</div>
+      </div>
+      <div class="if-item">
+        <div class="if-sym" id="if-seis-sym">I<sub>e</sub></div>
+        <div class="if-val" id="if-seis-val">1.00</div>
+        <div class="if-label">Seismic Importance Factor</div>
+        <div class="if-ref">§11.5.1 Table 11.5-1</div>
+      </div>
+      <div class="if-item">
+        <div class="if-sym">I<sub>w</sub></div>
+        <div class="if-val" id="if-wind-val" style="font-size:18px;margin-top:8px;">MRI-50</div>
+        <div class="if-label">Wind Speed Map (MRI)</div>
+        <div class="if-ref">§26.5.1 Fig. 26.5-1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Occupancy / Examples card -->
+  <div class="card" id="rc-detail-card" style="margin-top:14px;">
+    <h3 id="rc-detail-title">Risk Category II — Standard Occupancy</h3>
+    <p id="rc-detail-desc" style="font-size:13px;color:var(--muted);margin-bottom:8px;">
+      Applies to all buildings and structures not listed under Risk Categories I, III, or IV.
+      This is the default category.
+    </p>
+    <ul class="ex-list" id="rc-examples">
+      <li>Most office buildings</li>
+      <li>Residential buildings (apartments, single-family homes)</li>
+      <li>Retail facilities</li>
+      <li>Standard industrial buildings</li>
+    </ul>
+  </div>
+
+  <!-- Full Table 1.5-1 -->
+  <div class="sec-head">
+    Table 1.5-1 — Importance Factors Summary
+    <span class="ref">§7.3.4 · §11.5.1 · §26.5.1</span>
+  </div>
+  <div class="card" style="padding: 0; overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Risk Category</th>
+          <th>I<sub>s</sub> — Snow</th>
+          <th>I<sub>e</sub> — Seismic</th>
+          <th>I<sub>w</sub> — Wind MRI</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--cat-I)">I</strong></td>
+          <td class="mono">0.80</td>
+          <td class="mono">1.00</td>
+          <td class="mono">MRI-10</td>
+          <td>Low hazard (agricultural, minor storage)</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--cat-II)">II</strong></td>
+          <td class="mono">1.00</td>
+          <td class="mono">1.00</td>
+          <td class="mono">MRI-50</td>
+          <td>Standard occupancy — <em>default</em></td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--cat-III)">III</strong></td>
+          <td class="mono">1.10</td>
+          <td class="mono">1.25</td>
+          <td class="mono">MRI-100</td>
+          <td>Substantial hazard (schools, large assembly)</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--cat-IV)">IV</strong></td>
+          <td class="mono">1.20</td>
+          <td class="mono">1.50</td>
+          <td class="mono">MRI-700</td>
+          <td>Essential facilities (hospitals, emergency ops)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── §1.2.2 Load Symbols ────────────────────────────────────── -->
+  <div class="sec-head">
+    §1.2.2 — Load Symbols
+    <span class="ref">§2.2</span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th>Load Type</th>
+          <th>Standard Reference</th>
+          <th>Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">D</td><td>Dead load — permanent gravity</td><td>§3.1</td><td><span class="badge badge-dl">Dead</span></td></tr>
+        <tr><td class="mono">L</td><td>Live load — floor, occupancy</td><td>§4.3, Table 4.3-1</td><td><span class="badge badge-ll">Live</span></td></tr>
+        <tr><td class="mono">L<sub>r</sub></td><td>Roof live load</td><td>§4.8</td><td><span class="badge badge-ll">Live</span></td></tr>
+        <tr><td class="mono">S</td><td>Snow load</td><td>§7</td><td><span class="badge badge-sl">Snow</span></td></tr>
+        <tr><td class="mono">R</td><td>Rain load</td><td>§8</td><td><span class="badge badge-sl">Rain</span></td></tr>
+        <tr><td class="mono">W</td><td>Wind load</td><td>§26–31</td><td><span class="badge badge-wl">Wind</span></td></tr>
+        <tr><td class="mono">E</td><td>Earthquake load = E<sub>h</sub> + E<sub>v</sub></td><td>§12.4</td><td><span class="badge badge-eq">Seismic</span></td></tr>
+        <tr><td class="mono">E<sub>h</sub></td><td>Horizontal seismic force effect</td><td>§12.4.2</td><td><span class="badge badge-eq">Seismic</span></td></tr>
+        <tr><td class="mono">E<sub>v</sub></td><td>Vertical seismic force effect = 0.2S<sub>DS</sub>D</td><td>§12.4.2.2</td><td><span class="badge badge-eq">Seismic</span></td></tr>
+        <tr><td class="mono">H</td><td>Lateral earth pressure / groundwater</td><td>§3.2</td><td><span class="badge badge-other">Soil</span></td></tr>
+        <tr><td class="mono">F</td><td>Fluid load (well-defined pressure)</td><td>§2.3.1</td><td><span class="badge badge-other">Fluid</span></td></tr>
+        <tr><td class="mono">N</td><td>Notional load — structural integrity</td><td>§1.4.2, Eq.(1.4-1)</td><td><span class="badge badge-other">Integrity</span></td></tr>
+        <tr><td class="mono">T</td><td>Self-straining (thermal / shrinkage / creep)</td><td>§2.3.4</td><td><span class="badge badge-other">Thermal</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── §1.4.2 Notional Loads ──────────────────────────────────── -->
+  <div class="sec-head">
+    §1.4.2 — Notional Lateral Force (Structural Integrity)
+    <span class="ref">Eq. 1.4-1</span>
+  </div>
+
+  <div class="card">
+    <h3>Minimum Lateral Force for Structural Integrity</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+      Applied at each story level to ensure minimum structural integrity and robustness
+      against progressive collapse. The notional load acts independently of other lateral loads.
+    </p>
+    <div class="formula">
+      F<sub>x</sub> = 0.01 × W<sub>x</sub>
+      <div class="note">
+        F<sub>x</sub> = notional lateral force at level x (kN or kip)<br>
+        W<sub>x</sub> = gravity load assigned to level x (kN or kip)<br>
+        Applied independently in both orthogonal directions
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:10px;">
+      <strong>Notes:</strong> This 1% notional load applies to each floor level concurrently.
+      It is not combined with wind (W) or seismic (E) loads in the same load combination.
+      Per §1.4.2, the loads act simultaneously with the gravity load case that produces them.
+    </p>
+  </div>
+
+  <!-- Notional Load Calculator -->
+  <div class="card">
+    <h3>Notional Load Calculator — §1.4.2 Eq.(1.4-1)</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+      Enter story weight (W<sub>x</sub>) for each level. The calculator applies F<sub>x</sub> = 0.01 × W<sub>x</sub>.
+    </p>
+    <div class="calc-grid">
+      <div class="form-row">
+        <label>Number of Stories</label>
+        <input type="number" id="nl-stories" value="3" min="1" max="50" step="1">
+      </div>
+      <div class="form-row">
+        <label>Typical Story Weight W<sub>x</sub> (kN)</label>
+        <input type="number" id="nl-weight" value="2500" min="0" step="100">
+      </div>
+    </div>
+    <div id="nl-custom-weights" style="margin-top:12px;"></div>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+      <button class="calc-btn" onclick="buildWeightInputs()">Customize Per-Story Weights</button>
+      <button class="calc-btn" onclick="calcNotional()" style="background:var(--green);">Calculate F<sub>x</sub></button>
+    </div>
+    <div class="result-box" id="nl-result">
+      <h4>Notional Load Results — ASCE 7-16 §1.4.2 Eq.(1.4-1)</h4>
+      <div class="eq-box" id="nl-eq">F<sub>x</sub> = 0.01 × W<sub>x</sub></div>
+      <table class="result-table">
+        <thead>
+          <tr><th>Story Level</th><th>Height (assumed)</th><th>W<sub>x</sub> (kN)</th><th>F<sub>x</sub> = 0.01 W<sub>x</sub> (kN)</th></tr>
+        </thead>
+        <tbody id="nl-tbody"></tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:#dce8ff;">
+            <td colspan="2">Total</td>
+            <td id="nl-total-w"></td>
+            <td id="nl-total-f"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── §1.3 Design Basis ──────────────────────────────────────── -->
+  <div class="sec-head">
+    §1.3 — Design Basis &amp; Key Definitions
+    <span class="ref">§1.2, §1.3</span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Reference</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Strength Design (LRFD)</strong></td>
+          <td>Factored loads applied to member; member strength must exceed factored demand. Uses load factors ≥ 1.0 and resistance factors φ &lt; 1.0.</td>
+          <td>§2.3</td>
+        </tr>
+        <tr>
+          <td><strong>Allowable Stress Design (ASD)</strong></td>
+          <td>Unfactored loads; stresses must remain below allowable values (nominal strength ÷ safety factor Ω).</td>
+          <td>§2.4</td>
+        </tr>
+        <tr>
+          <td><strong>Risk Category</strong></td>
+          <td>Classification I–IV based on hazard to human life and essential services. Governs importance factors for snow, wind, and seismic loads.</td>
+          <td>§1.5, Table 1.5-1</td>
+        </tr>
+        <tr>
+          <td><strong>Mean Recurrence Interval (MRI)</strong></td>
+          <td>Average number of years between occurrences of an event of a given magnitude. Wind speed maps in ASCE 7-16 are given for specific MRI periods by Risk Category.</td>
+          <td>§26.5.1</td>
+        </tr>
+        <tr>
+          <td><strong>Structural Integrity</strong></td>
+          <td>Ability of a structure to resist progressive collapse; ensured by minimum notional lateral forces (§1.4.2) and connection ductility requirements.</td>
+          <td>§1.4</td>
+        </tr>
+        <tr>
+          <td><strong>Load Effect (Q)</strong></td>
+          <td>Internal forces, moments, stresses, or deformations in structural members resulting from applied loads.</td>
+          <td>§1.2.2</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Implementation note ───────────────────────────────────── -->
+  <div class="card" style="border-left: 4px solid var(--green);">
+    <h3 style="color:var(--green);">✓ Implemented in Structural Analyser</h3>
+    <ul class="ex-list">
+      <li><strong>js/asce7/ch1-risk-categories.js</strong> — <code>window.ASCE7_Ch1</code>: Risk Categories, importance factors, notional load engine</li>
+      <li><code>ASCE7_Ch1.getImportanceFactors('III')</code> → <code>{ Is: 1.10, Ie: 1.25, Iw: 'MRI-100' }</code></li>
+      <li><code>ASCE7_Ch1.computeNotionalLoads(nodes, beams, sections)</code> → story-level F<sub>x</sub> array</li>
+      <li><code>ASCE7_Ch1.notionalLoadsToSolverFormat(nodes, beams, sections)</code> → solver-ready node loads</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Reference: <strong>ASCE/SEI 7-16</strong> — Minimum Design Loads and Associated Criteria for Buildings and Other Structures<br>
+  American Society of Civil Engineers, 2016 &nbsp;|&nbsp;
+  <a href="index.html">← ASCE 7-16 Index</a> &nbsp;|&nbsp;
+  <a href="chapter-2-load-combinations.html">Chapter 2 →</a>
+</footer>
+
+<script>
+const RC_DATA = {
+  I: {
+    title: 'Risk Category I — Low Hazard',
+    desc: 'Buildings and structures that represent a low hazard to human life in the event of failure.',
+    Is: 0.80, Ie: 1.00, Iw: 'MRI-10',
+    examples: ['Agricultural facilities', 'Certain temporary facilities', 'Minor storage facilities']
+  },
+  II: {
+    title: 'Risk Category II — Standard Occupancy (Default)',
+    desc: 'Applies to all buildings and structures not listed under Risk Categories I, III, or IV. This is the default category.',
+    Is: 1.00, Ie: 1.00, Iw: 'MRI-50',
+    examples: ['Most office buildings', 'Residential buildings (apartments, single-family homes)', 'Retail facilities', 'Standard industrial buildings']
+  },
+  III: {
+    title: 'Risk Category III — Substantial Hazard',
+    desc: 'Buildings and structures that represent a substantial hazard to human life in the event of failure.',
+    Is: 1.10, Ie: 1.25, Iw: 'MRI-100',
+    examples: [
+      'Buildings with assembly occupancy where L₀ > 100 psf (4.79 kN/m²)',
+      'Buildings with occupant load > 5,000 persons',
+      'Elementary/secondary/higher-education schools and daycare facilities with > 250 occupants',
+      'Healthcare facilities with ≥ 50 resident patients (no surgery/emergency treatment)',
+      'Jails and detention facilities',
+      'Power-generating stations, water treatment facilities',
+      'Telecommunications hubs'
+    ]
+  },
+  IV: {
+    title: 'Risk Category IV — Essential Facilities',
+    desc: 'Buildings and structures designated as essential facilities that must remain operational after design events.',
+    Is: 1.20, Ie: 1.50, Iw: 'MRI-700',
+    examples: [
+      'Hospitals with surgery or emergency treatment facilities',
+      'Fire, rescue, ambulance, and police stations',
+      'Emergency response centers and emergency shelters',
+      'Aviation control towers and air traffic control centers',
+      'Buildings housing national defense systems',
+      'Facilities with highly toxic or explosive substances'
+    ]
+  }
+};
+
+let currentRC = 'II';
+let customWeights = null;
+
+function selectRC(cat) {
+  currentRC = cat;
+  const d = RC_DATA[cat];
+
+  document.querySelectorAll('.rc-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.rc-btn[data-cat="${cat}"]`).classList.add('active');
+
+  document.getElementById('if-title').textContent = `${d.title} — Importance Factors`;
+  document.getElementById('if-snow-val').textContent = d.Is.toFixed(2);
+  document.getElementById('if-seis-val').textContent = d.Ie.toFixed(2);
+  document.getElementById('if-wind-val').textContent = d.Iw;
+  document.getElementById('if-panel').classList.add('visible');
+
+  document.getElementById('rc-detail-title').textContent = d.title;
+  document.getElementById('rc-detail-desc').textContent = d.desc;
+  document.getElementById('rc-examples').innerHTML = d.examples.map(e => `<li>${e}</li>`).join('');
+}
+
+function buildWeightInputs() {
+  const n = parseInt(document.getElementById('nl-stories').value) || 3;
+  const typical = parseFloat(document.getElementById('nl-weight').value) || 2500;
+  customWeights = Array.from({length: n}, () => typical);
+
+  let html = '<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">Per-Story Weights (kN):</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">';
+  for (let i = n; i >= 1; i--) {
+    html += `<div class="form-row">
+      <label>Story ${i} W<sub>${i}</sub> (kN)</label>
+      <input type="number" id="nlw-${i}" value="${typical}" min="0" step="100">
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('nl-custom-weights').innerHTML = html;
+}
+
+function calcNotional() {
+  const n = parseInt(document.getElementById('nl-stories').value) || 3;
+  const typical = parseFloat(document.getElementById('nl-weight').value) || 2500;
+  const storyH = 3.0; // assumed 3m per floor
+
+  const weights = [];
+  for (let i = 1; i <= n; i++) {
+    const inp = document.getElementById(`nlw-${i}`);
+    weights.push(inp ? parseFloat(inp.value) || typical : typical);
+  }
+
+  let totalW = 0, totalF = 0;
+  let rows = '';
+  for (let i = n; i >= 1; i--) {
+    const Wx = weights[i - 1];
+    const Fx = 0.01 * Wx;
+    const elev = (i * storyH).toFixed(1);
+    totalW += Wx; totalF += Fx;
+    rows += `<tr>
+      <td>Story ${i}</td>
+      <td>${elev} m (assumed)</td>
+      <td>${Wx.toFixed(1)}</td>
+      <td><strong>${Fx.toFixed(2)}</strong></td>
+    </tr>`;
+  }
+
+  document.getElementById('nl-tbody').innerHTML = rows;
+  document.getElementById('nl-total-w').textContent = totalW.toFixed(1) + ' kN';
+  document.getElementById('nl-total-f').textContent = totalF.toFixed(2) + ' kN';
+  document.getElementById('nl-result').classList.add('visible');
+}
+
+// Init with RC II selected
+selectRC('II');
+</script>
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCE 7-16 Chapter 2 — Load Combinations | Structural Analyser Docs</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --panel: #fff; --border: #dde1e8;
+      --accent: #1565c0; --accent2: #0d47a1;
+      --text: #1a1a2e; --muted: #64748b;
+      --green: #2e7d32; --orange: #e65100; --red: #c62828;
+      --lrfd: #1565c0; --asd: #2e7d32; --seis: #c62828; --ext: #6a1b9a;
+      --radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font: 15px/1.6 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    .page-header {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 60%, #1976d2 100%);
+      color: #fff; padding: 32px 48px 28px;
+    }
+    .page-header .breadcrumb { font-size: 12px; opacity: 0.75; margin-bottom: 8px; }
+    .page-header .breadcrumb a { color: rgba(255,255,255,0.85); text-decoration: none; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .sub { opacity: 0.82; font-size: 13px; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── Tabs */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 9px 18px; border-radius: 6px; border: 2px solid transparent;
+      cursor: pointer; font-size: 13px; font-weight: 700; background: var(--panel);
+      box-shadow: var(--shadow); transition: all 0.15s;
+    }
+    .tab-btn.lrfd { color: var(--lrfd); border-color: var(--lrfd); }
+    .tab-btn.asd  { color: var(--asd);  border-color: var(--asd);  }
+    .tab-btn.seis { color: var(--seis); border-color: var(--seis); }
+    .tab-btn.ext  { color: var(--ext);  border-color: var(--ext);  }
+    .tab-btn.lrfd.active { background: #e8f0fe; }
+    .tab-btn.asd.active  { background: #e8f5e9; }
+    .tab-btn.seis.active { background: #ffebee; }
+    .tab-btn.ext.active  { background: #f3e5f5; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Section headings */
+    .sec-head {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin: 28px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+    }
+    .sec-head .ref { font-size: 11px; background: #e8f0fe; color: var(--accent); border-radius: 10px; padding: 2px 8px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+    /* ── Combo table */
+    .combo-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .combo-table thead th {
+      padding: 10px 12px; text-align: left; font-weight: 700; font-size: 12px;
+      border-bottom: 2px solid var(--border); background: #f0f4ff; color: var(--accent2);
+    }
+    .combo-table tbody tr { border-bottom: 1px solid var(--border); }
+    .combo-table tbody tr:last-child { border-bottom: none; }
+    .combo-table tbody tr:hover td { background: #f8faff; }
+    .combo-table td { padding: 9px 12px; vertical-align: middle; }
+    .combo-id { font-family: monospace; font-weight: 800; font-size: 12px; white-space: nowrap; }
+    .combo-id.lrfd { color: var(--lrfd); }
+    .combo-id.asd  { color: var(--asd);  }
+    .combo-id.seis { color: var(--seis); }
+    .combo-id.ext  { color: var(--ext);  }
+
+    .expr { font-family: monospace; font-size: 13px; color: var(--text); line-height: 1.5; }
+    .expr .fac { color: var(--accent); font-weight: 700; }
+    .expr .sym { color: #333; }
+
+    .gov-badge { display: inline-block; font-size: 10px; border-radius: 10px; padding: 2px 7px; font-weight: 700; white-space: nowrap; }
+    .gov-dead    { background:#fce4ec; color:#ad1457; }
+    .gov-gravity { background:#e8f5e9; color:#2e7d32; }
+    .gov-wind    { background:#fff3e0; color:#e65100; }
+    .gov-seismic { background:#fbe9e7; color:#bf360c; }
+    .gov-snow    { background:#e3f2fd; color:#0d47a1; }
+    .gov-ext     { background:#f3e5f5; color:#6a1b9a; }
+
+    /* ── Card */
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--accent2); }
+
+    /* ── Formula highlight */
+    .formula-row {
+      background: #0d47a1; color: #fff; border-radius: var(--radius);
+      padding: 12px 18px; font-family: monospace; font-size: 14px;
+      font-weight: 700; margin: 10px 0; letter-spacing: 0.03em;
+    }
+    .formula-row .note { font-size: 11px; opacity: 0.8; font-weight: 400; margin-top: 4px; font-family: 'Segoe UI', sans-serif; letter-spacing: 0; }
+
+    /* ── Key factors */
+    .factors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+    .factor-chip {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 14px; box-shadow: var(--shadow);
+    }
+    .factor-chip .sym { font-family: monospace; font-weight: 800; font-size: 16px; color: var(--accent); }
+    .factor-chip .val { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Seismic note */
+    .seis-note {
+      background: #fff3e0; border: 1px solid #ffb74d; border-left: 4px solid var(--orange);
+      border-radius: var(--radius); padding: 14px 18px; font-size: 13px; margin: 12px 0;
+    }
+    .seis-note strong { color: var(--orange); }
+
+    /* ── Implemented note */
+    .impl-card {
+      background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-top: 24px;
+    }
+    .impl-card h3 { font-size: 14px; font-weight: 700; color: var(--green); margin-bottom: 10px; }
+    .impl-card ul { list-style: none; }
+    .impl-card li { padding: 3px 0; font-size: 13px; display: flex; gap: 8px; }
+    .impl-card li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    code { background: #f0f4ff; color: var(--accent); border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 12px; }
+
+    footer { text-align: center; font-size: 12px; color: var(--muted); padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="breadcrumb">
+    <a href="../../index.html">Structural Analyser</a> ›
+    <a href="index.html">ASCE 7-16</a> ›
+    Chapter 2 — Load Combinations
+  </div>
+  <h1>Chapter 2 — Combinations of Loads</h1>
+  <div class="sub">LRFD Strength Design §2.3 · ASD Allowable Stress §2.4 · Seismic §2.3.6 / §2.4.5 · Extraordinary §2.5</div>
+</header>
+
+<div class="container">
+
+  <!-- Intro note -->
+  <div class="card">
+    <h3>Overview</h3>
+    <p style="font-size:13px;color:var(--muted);">
+      ASCE 7-16 Chapter 2 defines load combinations for both strength design (LRFD, §2.3) and allowable stress design (ASD, §2.4).
+      Where seismic loads govern, additional combinations from §2.3.6 (LRFD) and §2.4.5 (ASD) apply.
+      Extraordinary combinations (§2.5) address progressive collapse and abnormal load events.
+      Use the tabs to view each set. All load symbols follow §1.2.2.
+    </p>
+  </div>
+
+  <!-- Key factors reference -->
+  <div class="sec-head">Key Load Factors &amp; Variables <span class="ref">§2.3–2.4</span></div>
+  <div class="factors-grid">
+    <div class="factor-chip"><div class="sym">f₁</div><div class="val">= 1.0 for floors in places of public assembly, live loads > 4.79 kN/m²; else 0.5</div></div>
+    <div class="factor-chip"><div class="sym">f₂</div><div class="val">= 0.7 for storage, parking; 0.2 for other live loads in roof</div></div>
+    <div class="factor-chip"><div class="sym">ρ</div><div class="val">Redundancy factor (§12.3.4): 1.0 or 1.3 for SDC D, E, F</div></div>
+    <div class="factor-chip"><div class="sym">Ω₀</div><div class="val">Overstrength factor (Table 12.2-1); used in Eₘ = Ω₀Eₕ ± Eᵥ</div></div>
+    <div class="factor-chip"><div class="sym">SDS</div><div class="val">Design spectral acceleration at short periods; Eᵥ = 0.2S_DS·D (§12.4.2.2)</div></div>
+    <div class="factor-chip"><div class="sym">0.9D</div><div class="val">Minimum dead load factor used when dead load resists overturning / uplift</div></div>
+  </div>
+
+  <!-- ── Tabs ──────────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn lrfd active" onclick="showTab('lrfd')">LRFD — §2.3 (Strength Design)</button>
+    <button class="tab-btn asd"  onclick="showTab('asd')">ASD — §2.4 (Allowable Stress)</button>
+    <button class="tab-btn seis" onclick="showTab('seismic')">Seismic Combos §2.3.6 / §2.4.5</button>
+    <button class="tab-btn ext"  onclick="showTab('ext')">Extraordinary — §2.5</button>
+  </div>
+
+  <!-- ──────────── LRFD Tab ──────────────────────────────────── -->
+  <div class="tab-pane active" id="tab-lrfd">
+    <div class="sec-head">§2.3.1 — Basic LRFD Strength Design Combinations <span class="ref">§2.3.1</span></div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="combo-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Combo</th>
+            <th>Expression</th>
+            <th style="width:100px">Ref</th>
+            <th style="width:110px">Governs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-1</div></td>
+            <td><div class="expr"><span class="fac">1.4</span><span class="sym">D</span></div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-1</td>
+            <td><span class="gov-badge gov-dead">Dead load</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-2a</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.6</span>L + <span class="fac">0.5</span>(Lᵣ or S or R)</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-2</td>
+            <td><span class="gov-badge gov-gravity">Gravity max</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-2b</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.6</span>L + <span class="fac">0.5</span>W</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-2 alt</td>
+            <td><span class="gov-badge gov-gravity">Gravity + wind</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-3a</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.6</span>(Lᵣ or S or R) + (<span class="fac">1.0</span>L or <span class="fac">0.5</span>W)</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-3</td>
+            <td><span class="gov-badge gov-snow">Roof live/snow</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-3b</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.6</span>S + <span class="fac">0.5</span>W</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-3 alt</td>
+            <td><span class="gov-badge gov-snow">Snow + wind</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-4a</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.0</span>W + <span class="fac">1.0</span>L + <span class="fac">0.5</span>(Lᵣ or S or R)</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-4</td>
+            <td><span class="gov-badge gov-wind">Wind governs</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-4b</div></td>
+            <td><div class="expr"><span class="fac">0.9</span>D + <span class="fac">1.0</span>W</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-4 uplift</td>
+            <td><span class="gov-badge gov-wind">Uplift / OT</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-5a</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">1.0</span>E + <span class="fac">1.0</span>L + <span class="fac">0.2</span>S</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-5</td>
+            <td><span class="gov-badge gov-seismic">Seismic</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id lrfd">LRFD-5b</div></td>
+            <td><div class="expr"><span class="fac">0.9</span>D + <span class="fac">1.0</span>E</div></td>
+            <td style="font-size:11px;color:var(--muted);">Eq. 2.3-5 uplift</td>
+            <td><span class="gov-badge gov-seismic">Seismic uplift</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="seis-note">
+      <strong>Note on E:</strong> In seismic combinations, E = Eₕ + Eᵥ where Eₕ = ρQE (horizontal effect, §12.4.2.1)
+      and Eᵥ = 0.2S_DS·D (vertical effect, §12.4.2.2). For LRFD-5a: 1.2D + 1.0E + ... expands to
+      (1.2 + 0.2S_DS)D + ρQE + L + 0.2S. For LRFD-5b: (0.9 − 0.2S_DS)D + ρQE.
+    </div>
+
+    <div class="card">
+      <h3>When to Use Each Combination</h3>
+      <ul style="list-style:none;font-size:13px;">
+        <li style="padding:4px 0;"><strong>LRFD-1:</strong> Rarely governs — applies only where dead load alone is critical (concrete self-weight check).</li>
+        <li style="padding:4px 0;"><strong>LRFD-2a:</strong> Typically governs floor beams with high occupancy live loads.</li>
+        <li style="padding:4px 0;"><strong>LRFD-3a/3b:</strong> Governs roof members with significant snow accumulation.</li>
+        <li style="padding:4px 0;"><strong>LRFD-4a:</strong> Governs lateral-load-resisting members (columns, shear walls) under wind.</li>
+        <li style="padding:4px 0;"><strong>LRFD-4b:</strong> Critical for foundation uplift and overturning under wind — uses 0.9D to minimize stabilizing dead load.</li>
+        <li style="padding:4px 0;"><strong>LRFD-5a/5b:</strong> Apply wherever seismic loads are present; SDC B and above.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ──────────── ASD Tab ───────────────────────────────────── -->
+  <div class="tab-pane" id="tab-asd">
+    <div class="sec-head">§2.4.1 — Basic ASD Allowable Stress Combinations <span class="ref">§2.4.1</span></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="combo-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Combo</th>
+            <th>Expression (unfactored loads)</th>
+            <th style="width:100px">Ref</th>
+            <th style="width:110px">Governs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="combo-id asd">ASD-1</div></td>
+            <td><div class="expr">D</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (1)</td>
+            <td><span class="gov-badge gov-dead">Dead only</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-2</div></td>
+            <td><div class="expr">D + L</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (2)</td>
+            <td><span class="gov-badge gov-gravity">Gravity</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-3</div></td>
+            <td><div class="expr">D + Lᵣ (or S or R)</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (3)</td>
+            <td><span class="gov-badge gov-snow">Roof live/snow</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-4</div></td>
+            <td><div class="expr">D + <span class="fac">0.75</span>L + <span class="fac">0.75</span>Lᵣ (or <span class="fac">0.75</span>S or <span class="fac">0.75</span>R)</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (4)</td>
+            <td><span class="gov-badge gov-gravity">Gravity combo</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-5a</div></td>
+            <td><div class="expr">D + <span class="fac">0.6</span>W</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (5a)</td>
+            <td><span class="gov-badge gov-wind">Wind</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-5b</div></td>
+            <td><div class="expr">D + <span class="fac">0.7</span>E</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (5b)</td>
+            <td><span class="gov-badge gov-seismic">Seismic</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-6a</div></td>
+            <td><div class="expr">D + <span class="fac">0.75</span>(<span class="fac">0.6</span>W) + <span class="fac">0.75</span>L + <span class="fac">0.75</span>(Lᵣ or S or R)</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (6a)</td>
+            <td><span class="gov-badge gov-wind">Wind + gravity</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-6b</div></td>
+            <td><div class="expr">D + <span class="fac">0.75</span>(<span class="fac">0.7</span>E) + <span class="fac">0.75</span>L + <span class="fac">0.75</span>S</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (6b)</td>
+            <td><span class="gov-badge gov-seismic">Seismic + grav.</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-7a</div></td>
+            <td><div class="expr"><span class="fac">0.6</span>D + <span class="fac">0.6</span>W</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (7a)</td>
+            <td><span class="gov-badge gov-wind">Wind uplift</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id asd">ASD-7b</div></td>
+            <td><div class="expr"><span class="fac">0.6</span>D + <span class="fac">0.7</span>E</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.1 (7b)</td>
+            <td><span class="gov-badge gov-seismic">Seismic uplift</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>ASD Design Notes</h3>
+      <ul style="list-style:none;font-size:13px;">
+        <li style="padding:4px 0;"><strong>Unfactored loads:</strong> ASD uses service-level loads directly — no load amplification factors ≥ 1.0 on gravity.</li>
+        <li style="padding:4px 0;"><strong>0.6W factor:</strong> Wind loads in ASD are reduced to 60% because the basic wind speed in ASCE 7-10/16 was calibrated for LRFD (strength-level). The 0.6 factor converts to service level.</li>
+        <li style="padding:4px 0;"><strong>0.7E factor:</strong> Seismic loads are reduced to 70% of design earthquake for ASD service-level check (§2.4.1).</li>
+        <li style="padding:4px 0;"><strong>Combinations 6a/6b:</strong> Use 75% of wind or seismic combined with 75% of floor live and roof live/snow, accounting for improbability of all extreme events occurring simultaneously.</li>
+        <li style="padding:4px 0;"><strong>Combinations 7a/7b:</strong> Overturning and uplift checks — use minimum dead load (0.6D) to maximize net uplift effect.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ──────────── Seismic Tab ───────────────────────────────── -->
+  <div class="tab-pane" id="tab-seismic">
+    <div class="sec-head">§2.3.6 — LRFD Seismic Load Combinations with Overstrength <span class="ref">§2.3.6</span></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="combo-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Combo</th>
+            <th>Expression</th>
+            <th style="width:100px">Ref</th>
+            <th style="width:120px">Governs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="combo-id seis">LRFD-6a</div></td>
+            <td><div class="expr">(<span class="fac">1.2</span> + <span class="fac">0.2</span>S<sub>DS</sub>)D + <span class="fac">Ω₀</span>Qₑ + L + <span class="fac">0.2</span>S</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.3.6 (1)</td>
+            <td><span class="gov-badge gov-seismic">Overstrength</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id seis">LRFD-7a</div></td>
+            <td><div class="expr">(<span class="fac">0.9</span> − <span class="fac">0.2</span>S<sub>DS</sub>)D + <span class="fac">Ω₀</span>Qₑ</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.3.6 (2)</td>
+            <td><span class="gov-badge gov-seismic">OT uplift</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec-head">§2.4.5 — ASD Seismic Load Combinations with Overstrength <span class="ref">§2.4.5</span></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="combo-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Combo</th>
+            <th>Expression</th>
+            <th style="width:100px">Ref</th>
+            <th style="width:120px">Governs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="combo-id seis">ASD-8</div></td>
+            <td><div class="expr">(1 + <span class="fac">0.14</span>S<sub>DS</sub>)D + H + F + <span class="fac">0.7</span>Ω₀Qₑ</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.5 (1)</td>
+            <td><span class="gov-badge gov-seismic">Overstrength</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id seis">ASD-9</div></td>
+            <td><div class="expr">(1 + <span class="fac">0.105</span>S<sub>DS</sub>)D + H + F + <span class="fac">0.525</span>Ω₀Qₑ + <span class="fac">0.75</span>L + <span class="fac">0.75</span>S</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.5 (2)</td>
+            <td><span class="gov-badge gov-seismic">Combined grav.</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id seis">ASD-10</div></td>
+            <td><div class="expr">(<span class="fac">0.6</span> − <span class="fac">0.14</span>S<sub>DS</sub>)D + <span class="fac">0.7</span>Ω₀Qₑ + H</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.4.5 (3)</td>
+            <td><span class="gov-badge gov-seismic">OT uplift</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>When Overstrength Combinations Apply</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+        Overstrength combinations (using Ω₀ in place of ρ) are required by ASCE 7-16 for specific
+        components that must remain elastic to protect adjacent yielding elements:
+      </p>
+      <ul style="list-style:none;font-size:13px;">
+        <li style="padding:3px 0;">› Collectors (drag struts) connecting to lateral-force-resisting elements — §12.10.2.1</li>
+        <li style="padding:3px 0;">› Columns supporting discontinuous walls or frames — §12.3.3.3</li>
+        <li style="padding:3px 0;">› Diaphragm connections to the LFRS — §12.10</li>
+        <li style="padding:3px 0;">› Foundations supporting LFRS elements — §12.13.5</li>
+        <li style="padding:3px 0;">› Cantilevered column systems — §12.2.5.2</li>
+        <li style="padding:3px 0;">› Batter piles — §12.13.8.3</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border-left:4px solid #e65100;">
+      <h3 style="color:var(--orange);">Expanded Seismic Load E = Eₕ + Eᵥ</h3>
+      <div class="formula-row">
+        E = Eₕ + Eᵥ = ρQE ± 0.2S_DS·D
+        <div class="note">
+          Eₕ = ρQE : horizontal seismic effect × redundancy factor (§12.4.2.1)<br>
+          Eᵥ = 0.2S_DS·D : vertical seismic effect (§12.4.2.2) — additive in LRFD-5a, subtractive in LRFD-5b
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+        Eₘ (with overstrength) = Ω₀Qₑ ± 0.2S_DS·D — substituted for ρQE in overstrength combinations.
+      </p>
+    </div>
+  </div>
+
+  <!-- ──────────── Extraordinary Tab ────────────────────────── -->
+  <div class="tab-pane" id="tab-ext">
+    <div class="sec-head">§2.5 — Extraordinary Load Combinations (Progressive Collapse) <span class="ref">§2.5</span></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="combo-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Combo</th>
+            <th>Expression</th>
+            <th style="width:100px">Ref</th>
+            <th style="width:110px">Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="combo-id ext">EXT-1</div></td>
+            <td><div class="expr"><span class="fac">1.2</span>D + <span class="fac">A<sub>k</sub></span> + <span class="fac">1.0</span>L + <span class="fac">0.2</span>S</div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.5.2 Eq. 2.5-1</td>
+            <td><span class="gov-badge gov-ext">Extraordinary</span></td>
+          </tr>
+          <tr>
+            <td><div class="combo-id ext">EXT-2</div></td>
+            <td><div class="expr"><span class="fac">0.9</span>D + <span class="fac">A<sub>k</sub></span></div></td>
+            <td style="font-size:11px;color:var(--muted);">§2.5.2 Eq. 2.5-2</td>
+            <td><span class="gov-badge gov-ext">Uplift check</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Ak — Extraordinary (Abnormal) Load</h3>
+      <p style="font-size:13px;color:var(--muted);">
+        <strong>Ak</strong> is the load effect resulting from an extraordinary event such as:
+        an explosion, vehicular impact, equipment failure, or other event not normally
+        considered in design but required for structural integrity per the contract documents.
+        Ak is not combined with seismic or wind loads in the same combination.
+      </p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--ext);">
+      <h3 style="color:var(--ext);">When Extraordinary Combinations Are Required</h3>
+      <ul style="list-style:none;font-size:13px;">
+        <li style="padding:3px 0;">› Risk Category III/IV buildings where progressive collapse analysis is required</li>
+        <li style="padding:3px 0;">› Buildings with parking at ground floor (vehicle impact)</li>
+        <li style="padding:3px 0;">› Structures near explosive or high-hazard industrial processes</li>
+        <li style="padding:3px 0;">› When specified by the authority having jurisdiction (AHJ)</li>
+        <li style="padding:3px 0;">› Buildings using alternate load path method (UFC 4-023-03 for federal)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Implementation note ───────────────────────────────────── -->
+  <div class="impl-card">
+    <h3>✓ Implemented in Structural Analyser</h3>
+    <ul>
+      <li><code>js/asce7/ch2-load-combinations.js</code> — <code>window.ASCE7_Ch2</code></li>
+      <li>LRFD basic: 9 combinations (LRFD-1 through LRFD-5b)</li>
+      <li>LRFD seismic overstrength: 2 combinations (LRFD-6a, LRFD-7a)</li>
+      <li>ASD basic: 10 combinations (ASD-1 through ASD-7b)</li>
+      <li>ASD seismic overstrength: 3 combinations (ASD-8 through ASD-10)</li>
+      <li>Extraordinary: 2 combinations (EXT-1, EXT-2)</li>
+      <li><code>ASCE7_Ch2.autoGenerateCombos(loadCases, 'LRFD', true)</code> → filtered combos for present load types</li>
+      <li><code>ASCE7_Ch2.comboToAppFormat(combo, loadCases, nextId)</code> → solver-ready load combination object</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Reference: <strong>ASCE/SEI 7-16</strong> — Minimum Design Loads and Associated Criteria for Buildings and Other Structures<br>
+  American Society of Civil Engineers, 2016 &nbsp;|&nbsp;
+  <a href="chapter-1-general.html">← Chapter 1</a> &nbsp;|&nbsp;
+  <a href="index.html">ASCE 7-16 Index</a>
+</footer>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const map = { lrfd: 'lrfd', asd: 'asd', seismic: 'seis', ext: 'ext' };
+  document.querySelectorAll('.tab-btn.' + (map[id] || id)).forEach(b => b.classList.add('active'));
+}
+</script>
+</body>
+</html>

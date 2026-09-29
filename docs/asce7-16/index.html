@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCE 7-16 Reference — Structural Analyser Docs</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --panel: #fff; --border: #dde1e8;
+      --accent: #1565c0; --accent2: #0d47a1;
+      --text: #1a1a2e; --muted: #64748b;
+      --green: #2e7d32; --orange: #e65100; --red: #c62828;
+      --radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font: 15px/1.6 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── Layout */
+    .page-header {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 60%, #1976d2 100%);
+      color: #fff; padding: 40px 48px 36px; position: relative; overflow: hidden;
+    }
+    .page-header::before {
+      content: 'ASCE'; position: absolute; right: 48px; top: 20px;
+      font-size: 96px; font-weight: 900; opacity: 0.08; letter-spacing: -4px;
+    }
+    .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    .page-header .sub { opacity: 0.82; font-size: 14px; }
+    .page-header .badge {
+      display: inline-block; background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+      padding: 3px 12px; font-size: 12px; margin-top: 10px;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    /* ── Chapter grid */
+    .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 32px 0 16px; }
+    .chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    .chapter-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px;
+      text-decoration: none; color: var(--text); display: block;
+      box-shadow: var(--shadow); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .chapter-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); border-color: var(--accent); }
+    .chapter-card.done::after {
+      content: '✓ Implemented'; position: absolute; top: 12px; right: 14px;
+      font-size: 11px; font-weight: 700; color: var(--green);
+      background: #e8f5e9; border-radius: 10px; padding: 2px 8px;
+    }
+    .chapter-card.wip::after {
+      content: '⏳ Upcoming'; position: absolute; top: 12px; right: 14px;
+      font-size: 11px; color: var(--muted); background: #f1f5f9; border-radius: 10px; padding: 2px 8px;
+    }
+    .ch-num { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .ch-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .ch-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .ch-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 11px; background: #e8f0fe; color: var(--accent); border-radius: 10px; padding: 2px 8px; font-weight: 600; }
+
+    /* ── Quick reference box */
+    .quick-ref {
+      background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      border-radius: var(--radius); padding: 20px 24px; margin-bottom: 24px; box-shadow: var(--shadow);
+    }
+    .quick-ref h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--accent); }
+    .quick-ref ul { list-style: none; }
+    .quick-ref li { padding: 3px 0; font-size: 13px; display: flex; gap: 10px; }
+    .quick-ref .sym { font-family: monospace; font-weight: 700; min-width: 40px; color: var(--accent); }
+
+    footer { text-align: center; font-size: 12px; color: var(--muted); padding: 24px; border-top: 1px solid var(--border); margin-top: 24px; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>ASCE 7-16 Reference Documentation</h1>
+  <div class="sub">Minimum Design Loads and Associated Criteria for Buildings and Other Structures</div>
+  <div class="badge">ASCE/SEI 7-16 · Chapter-by-Chapter Implementation</div>
+</header>
+
+<div class="container">
+
+  <!-- Quick symbol reference -->
+  <div class="quick-ref">
+    <h3>§2.2 Load Symbols</h3>
+    <ul>
+      <li><span class="sym">D</span> Dead load (§3)</li>
+      <li><span class="sym">L</span> Live load (§4) — floor, occupancy</li>
+      <li><span class="sym">Lr</span> Roof live load (§4.8)</li>
+      <li><span class="sym">S</span> Snow load (§7)</li>
+      <li><span class="sym">R</span> Rain load (§8)</li>
+      <li><span class="sym">W</span> Wind load (§26–31)</li>
+      <li><span class="sym">E</span> Earthquake load = Eh + Ev (§12)</li>
+      <li><span class="sym">H</span> Lateral earth / groundwater pressure (§3.2)</li>
+      <li><span class="sym">N</span> Notional load — structural integrity (§1.4.2)</li>
+      <li><span class="sym">F</span> Fluid load (well-defined pressure, §2.3.1)</li>
+      <li><span class="sym">T</span> Self-straining (thermal / shrinkage, §2.3.4)</li>
+    </ul>
+  </div>
+
+  <div class="section-title">Implemented Chapters</div>
+  <div class="chapters">
+
+    <a href="chapter-1-general.html" class="chapter-card done">
+      <div class="ch-num">Chapter 1</div>
+      <div class="ch-title">General</div>
+      <div class="ch-desc">Scope, definitions, load symbols, Risk Categories (I–IV), importance factors, structural integrity notional loads (Fx = 0.01Wx).</div>
+      <div class="ch-tags">
+        <span class="tag">Risk Categories</span>
+        <span class="tag">Importance Factors</span>
+        <span class="tag">Notional Loads</span>
+      </div>
+    </a>
+
+    <a href="chapter-2-load-combinations.html" class="chapter-card done">
+      <div class="ch-num">Chapter 2</div>
+      <div class="ch-title">Combinations of Loads</div>
+      <div class="ch-desc">LRFD strength design combinations (§2.3.1 Comb. 1–5, seismic 6–7) and ASD allowable stress combinations (§2.4.1 Comb. 1–7, seismic 8–10).</div>
+      <div class="ch-tags">
+        <span class="tag">LRFD</span>
+        <span class="tag">ASD</span>
+        <span class="tag">Seismic Combos</span>
+      </div>
+    </a>
+
+    <a href="chapter-3-dead-loads.html" class="chapter-card done">
+      <div class="ch-num">Chapter 3</div>
+      <div class="ch-title">Dead Loads</div>
+      <div class="ch-desc">50+ materials from Table C3-1 &amp; 3.1-1, soil lateral pressure. Interactive floor system calculator in app — stack layers, apply UDL.</div>
+      <div class="ch-tags"><span class="tag">Material Weights</span><span class="tag">Soil Pressure</span><span class="tag">Floor Systems</span></div>
+    </a>
+
+  </div>
+
+  <div class="section-title">Upcoming Chapters</div>
+  <div class="chapters">
+
+    <a href="#" class="chapter-card wip">
+      <div class="ch-num">Chapter 4</div>
+      <div class="ch-title">Live Loads</div>
+      <div class="ch-desc">Table 4.3-1 uniform live loads by occupancy, reduction factors, impact loads, crane loads.</div>
+      <div class="ch-tags"><span class="tag">Uniform Loads</span><span class="tag">Live Load Reduction</span></div>
+    </a>
+
+    <a href="#" class="chapter-card wip">
+      <div class="ch-num">Chapter 7</div>
+      <div class="ch-title">Snow Loads</div>
+      <div class="ch-desc">Flat/sloped roof snow loads, drift, balanced/unbalanced, importance factor Is.</div>
+      <div class="ch-tags"><span class="tag">pg, Cs</span><span class="tag">Drift</span><span class="tag">Is Factor</span></div>
+    </a>
+
+    <a href="#" class="chapter-card wip">
+      <div class="ch-num">Chapters 26–31</div>
+      <div class="ch-title">Wind Loads</div>
+      <div class="ch-desc">Directional and envelope procedures for MWFRS and C&C. Basic wind speed maps by Risk Category.</div>
+      <div class="ch-tags"><span class="tag">MWFRS</span><span class="tag">C&C</span><span class="tag">Kz, Kd, Kzt</span></div>
+    </a>
+
+    <a href="#" class="chapter-card wip">
+      <div class="ch-num">Chapters 11–12</div>
+      <div class="ch-title">Seismic Design</div>
+      <div class="ch-desc">Site classification, spectral accelerations, SDC, equivalent lateral force, drift limits, Ie factor.</div>
+      <div class="ch-tags"><span class="tag">ELF</span><span class="tag">SDC</span><span class="tag">Cs, Cv</span></div>
+    </a>
+
+  </div>
+
+</div>
+
+<footer>
+  <p>Reference: <strong>ASCE/SEI 7-16</strong> — Minimum Design Loads and Associated Criteria for Buildings and Other Structures<br>
+  American Society of Civil Engineers, 2016 &nbsp;|&nbsp;
+  <a href="../../index.html">← Back to Structural Analyser</a></p>
+</footer>
+
+</body>
+</html>
