@@ -40,13 +40,16 @@ for (const f of ['js/solver.js', 'js/solver3d.js', 'js/analysis/pdelta.js',
                  'js/design/rc_design.js', 'js/design/foundation.js',
                  'js/calc/beam_formulas.js', 'js/calc/pm_interaction.js',
                  'js/calc/mohrs_circle.js', 'js/calc/natural_freq.js',
-                 'js/io/fileio.js', 'js/report/report.js', 'js/design/sections.js']) {
+                 'js/io/fileio.js', 'js/report/report.js', 'js/design/sections.js',
+                 // Also pure logic, no DOM — previously never loaded here at all,
+                 // so its ASCE7/EC0 combo generation had zero regression coverage.
+                 'js/design/load_combos_generator.js']) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 }
 const { solveFrame, solveFrame3D, PDeltaAnalysis, ModeShapeAnalysis, ResponseSpectrum, StructDB,
         DesignChecks, ACIDesign, RCDesign, FoundationDesign, BeamFormulas,
         PMInteraction, MohrsCircle, NaturalFreq, FileIO, ReportGenerator,
-        SectionDB,
+        SectionDB, LoadCombosGenerator,
         // Resolves a member stiffness modifier, falling back to its section.
         stiffMod } = ctx;
 
@@ -7524,6 +7527,48 @@ group('Bracing actually braces');
   check('the two are comparable, as they should be',
         Math.abs(uX - uK) / Math.max(uX, uK) < 0.5,
         `${uX.toFixed(3)} vs ${uK.toFixed(3)} mm`);
+}
+
+group('EC0 EQU combo includes the actual lateral case, not just DL');
+{
+  // Regression for a real bug: the EQU (equilibrium) block gated on
+  // `WL || EQ` but only ever populated a WL factor regardless of which case
+  // triggered it, so an EQ-only model still produced a combo — labelled
+  // "1.5<seismic case name>" is right, but it used to say "1.5WL" — whose
+  // factors were DL alone, with the seismic case silently absent. See
+  // load_combos_generator.js's generateEC0_ULS for the fix itself.
+  const dl = { id: 1, name: 'Dead',           type: 'DL' };
+  const eq = { id: 2, name: 'Seismic (EQ)',   type: 'EQ' };
+  const wl = { id: 3, name: 'Wind',           type: 'WL' };
+  const ll = { id: 4, name: 'Live',           type: 'LL' };
+
+  const eqOnly = LoadCombosGenerator.generateEC0_ULS([dl, eq]);
+  const eqEqu  = eqOnly.filter(c => c.code === 'EC0 EQU');
+  check('an EQ-only model still gets EQU combos', eqEqu.length === 2,
+        JSON.stringify(eqEqu.map(c => c.name)));
+  check('and they are labelled with the seismic case, not WL',
+        eqEqu.length > 0 && eqEqu.every(c => /Seismic \(EQ\)/.test(c.name) && !/WL/.test(c.name)),
+        JSON.stringify(eqEqu.map(c => c.name)));
+  check('the seismic case itself carries a real factor in EQU, not just DL',
+        eqEqu.length > 0 && eqEqu.every(c => c.factors[eq.id] === 1.5),
+        JSON.stringify(eqEqu.map(c => c.factors)));
+
+  const wlOnly = LoadCombosGenerator.generateEC0_ULS([dl, wl]);
+  const wlEqu  = wlOnly.filter(c => c.code === 'EC0 EQU');
+  check('a WL-only model is unaffected by the fix',
+        wlEqu.length === 2 && wlEqu.every(c => c.factors[wl.id] === 1.5 && /Wind/.test(c.name)),
+        JSON.stringify(wlEqu.map(c => c.name)));
+
+  const both = LoadCombosGenerator.generateEC0_ULS([dl, wl, eq]);
+  const bothEqu = both.filter(c => c.code === 'EC0 EQU');
+  check('wind and seismic each get their own EQU pair, not combined into one',
+        bothEqu.length === 4, JSON.stringify(bothEqu.map(c => c.name)));
+  check('neither pair drops the other\'s factor',
+        bothEqu.some(c => c.factors[wl.id] === 1.5) && bothEqu.some(c => c.factors[eq.id] === 1.5));
+
+  const neither = LoadCombosGenerator.generateEC0_ULS([dl, ll]);
+  check('no EQU combo at all when neither WL nor EQ is present',
+        neither.filter(c => c.code === 'EC0 EQU').length === 0);
 }
 
 } catch (e) {

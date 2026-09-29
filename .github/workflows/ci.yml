@@ -1,0 +1,25 @@
+name: CI
+
+# Runs on every push and pull request against any branch. There is no build
+# step — this is a static site loaded via <script> tags — so "CI" here means
+# exactly what a contributor should run locally before pushing: lint, then
+# the solver regression suite. `npm test` already runs lint first via the
+# "pretest" script in package.json, so a single step covers both.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm test
