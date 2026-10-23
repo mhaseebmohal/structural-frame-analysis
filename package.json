@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Web-based 2D/3D structural frame analysis and design tool (FEM, ACI 318-19, EC2, EC3)",
   "author": "Haseeb",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "start": "npx serve -p 5500 -s .",

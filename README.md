@@ -194,7 +194,9 @@ degenerate models produce an error instead of a plausible-looking answer.
 ├── create_sections_db.py       Python script — generates sections_db.xlsx
 ├── sections_db.xlsx            Steel / Concrete / Timber section library (Excel)
 ├── viewcube_new.py             ViewCube SVG generator
-└── docs/                       Reference PDFs + ASCE 7-16 chapter HTML
+├── AUDIT_FINDINGS.md           Code audit notes (point-in-time; some items since fixed)
+├── tests/                      Regression suite (npm test) + minimal DOM stub
+└── docs/asce7-16/              ASCE 7-16 reference pages, linked from the app
 ```
 
 ---
@@ -396,3 +398,10 @@ To add a new tool or operation:
 
 Chrome 90+, Firefox 88+, Safari 15+, Edge 90+  
 Requires: IndexedDB, Web Workers, SVG, CSS custom properties, ES2020
+
+---
+
+## License
+
+[MIT](LICENSE). The license's no-warranty clause applies alongside the
+disclaimer at the top of this file.

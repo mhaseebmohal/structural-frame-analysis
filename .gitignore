@@ -1,5 +1,10 @@
 node_modules/
-.claude/settings.local.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Local Claude Code config (machine-specific paths)
+.claude/
+
+# Third-party reference documents: kept locally, not redistributed
+docs/*.pdf
