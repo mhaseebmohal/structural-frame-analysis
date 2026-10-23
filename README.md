@@ -21,12 +21,38 @@ Direct Stiffness Method (FEM) | ACI 318-19 | Eurocode 2 & 3 | P-Δ | Mode Shapes
 >   the linear solve does not include them.
 > - Connections, fatigue, fire, seismic detailing and serviceability beyond
 >   deflection and crack width are **not covered at all**.
+> - The code was written with **Claude**, Anthropic's AI model, working from my
+>   prompts — see [How this was built](#how-this-was-built). That is one more
+>   reason to verify results rather than trust them.
 >
 > `npm test` asserts the invariants the analysis rests on — equilibrium for
 > every load and support type, agreement between the linear, P-Δ and modal
 > paths, 2D against 3D, closed-form beam results against numerical integration,
 > and the section library against first principles. Passing tests mean those
 > invariants hold; they do not mean the tool is fit for any particular design.
+
+---
+
+## How this was built
+
+This project was built with [Claude](https://claude.ai) (Anthropic's AI model)
+in Claude Code. Claude wrote the code; I directed the work and judged the
+results. My part is the engineering:
+
+- **Prompting for what I want designed.** Each feature starts as a prompt that
+  says what it must do in engineering terms — the method, the code clause it
+  implements, units, sign conventions and the edge cases that matter — rather
+  than a loose request.
+- **Interpreting what comes back.** I read the output as an engineer: does the
+  deflected shape make sense, do the reactions balance the loads, does a member
+  check agree with a hand calculation. When it doesn't, the next prompt says
+  exactly what is wrong and why.
+- **Deciding what is correct.** Claude proposes; I decide. The regression tests
+  came out of the same loop — they encode the checks I would otherwise repeat by
+  hand, so a later change cannot quietly break them.
+
+Being AI-assisted does not change the disclaimer above: treat every result as
+something to check.
 
 ---
 
