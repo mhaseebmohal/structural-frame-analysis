@@ -1,58 +1,89 @@
 # Structural Analyser
 
-Web-based 2D/3D structural frame analysis and design tool.  
+A web-based tool for 2D and 3D structural frame analysis and design that runs right in your browser.  
 Direct Stiffness Method (FEM) | ACI 318-19 | Eurocode 2 & 3 | P-Δ | Mode Shapes | Response Spectrum
 
-> ### ⚠ Read before using this for real work
->
-> This is an **engineering aid, not code-compliant design software.** Every
-> result it produces must be independently checked by a qualified engineer who
-> takes responsibility for the design. It carries no warranty of any kind.
->
-> Specific limits worth knowing:
->
-> - The design modules implement **simplified forms** of EC3, EC2 and ACI 318-19.
->   They cover the common checks, not the full codes, and use recommended
->   partial factors rather than any national annex.
-> - Column checks assume **symmetric reinforcement**; effective lengths come
->   from the per-member K factors you set, which the tool does not verify
->   against the real restraint conditions.
-> - Second-order effects are covered by the P-Δ module only when you run it;
->   the linear solve does not include them.
-> - Connections, fatigue, fire, seismic detailing and serviceability beyond
->   deflection and crack width are **not covered at all**.
-> - The code was written with **Claude**, Anthropic's AI model, working from my
->   prompts — see [How this was built](#how-this-was-built). That is one more
->   reason to verify results rather than trust them.
->
-> `npm test` asserts the invariants the analysis rests on — equilibrium for
-> every load and support type, agreement between the linear, P-Δ and modal
-> paths, 2D against 3D, closed-form beam results against numerical integration,
-> and the section library against first principles. Passing tests mean those
-> invariants hold; they do not mean the tool is fit for any particular design.
+> **A quick note before you start:** this is an engineering aid, not certified
+> design software. Please have any results checked by a qualified engineer
+> before you use them on a real project. There's more on this in
+> [Using it with care](#using-it-with-care).
 
 ---
 
 ## How this was built
 
-This project was built with [Claude](https://claude.ai) (Anthropic's AI model)
-in Claude Code. Claude wrote the code; I directed the work and judged the
-results. My part is the engineering:
+I built this project with the help of [Claude](https://claude.ai), Anthropic's
+AI model, using Claude Code. Claude wrote the code. The direction, the
+engineering decisions and the testing were mine.
 
-- **Prompting for what I want designed.** Each feature starts as a prompt that
-  says what it must do in engineering terms — the method, the code clause it
-  implements, units, sign conventions and the edge cases that matter — rather
-  than a loose request.
-- **Interpreting what comes back.** I read the output as an engineer: does the
-  deflected shape make sense, do the reactions balance the loads, does a member
-  check agree with a hand calculation. When it doesn't, the next prompt says
-  exactly what is wrong and why.
-- **Deciding what is correct.** Claude proposes; I decide. The regression tests
-  came out of the same loop — they encode the checks I would otherwise repeat by
-  hand, so a later change cannot quietly break them.
+- **I gave all the instructions.** Every feature started with my own
+  instructions, written in engineering terms: what it should do, which method
+  or code clause to follow, the units and sign conventions, and the edge cases
+  that matter.
+- **I reviewed the results as an engineer.** Does the deflected shape make
+  sense? Do the reactions balance the loads? Does a member check agree with my
+  hand calculation? When something didn't look right, I explained what was
+  wrong and why, and had it fixed.
+- **I made the final call.** Claude suggested and I decided what was correct
+  and what went into the tool.
+- **I tested the features myself.** I worked through the features in the app,
+  as thoroughly as I could, to make sure they behave the way they should. I
+  also turned the checks I kept repeating by hand into automated tests (see
+  [Testing](#testing)).
 
-Being AI-assisted does not change the disclaimer above: treat every result as
-something to check.
+I'm sharing this openly because I think it's useful to know how a tool was
+made. It doesn't change the advice below: like any analysis software, its
+results are worth checking.
+
+---
+
+## Testing
+
+**Manual testing.** I tested the features in the app myself. I built models,
+ran the analyses and design checks, and compared the results with hand
+calculations and with what engineering judgement says they should be.
+
+**Automated tests.** `npm test` runs `tests/regression.js`, which loads the
+analysis and design modules into a Node VM the same way `index.html` loads
+them. It checks the rules the analysis depends on rather than comparing
+against stored numbers:
+
+- global force equilibrium for every load type and every support type (springs included)
+- agreement between the linear, P-Δ and modal paths
+- second-order effects amplify sway, and amplify it more as gravity load grows
+- 2D and 3D give the same answer for a planar frame
+- closed-form beam results match numerical integration
+- the section library matches first-principles calculations
+- the design codes read the solver's compression-positive axial convention correctly
+- degenerate models produce an error instead of a plausible-looking answer
+
+Passing tests mean these core rules hold. They're a strong safety net, but they
+can't guarantee that every result is right for every design.
+
+---
+
+## Using it with care
+
+I've done my best to make the results reliable, but please treat this as an
+engineering aid rather than code-compliant design software. Every result should
+be checked by a qualified engineer who takes responsibility for the design.
+The tool comes with no warranty (see [License](#license)).
+
+A few limits that are good to know:
+
+- The design modules use **simplified forms** of EC3, EC2 and ACI 318-19. They
+  cover the common checks rather than the full codes, and they use the
+  recommended partial factors rather than any national annex.
+- Column checks assume **symmetric reinforcement**. Effective lengths come from
+  the K factors you set for each member. The tool doesn't check these against
+  the actual restraint conditions.
+- Second-order effects are included only when you run the P-Δ analysis. The
+  linear solve doesn't include them.
+- Connections, fatigue, fire, seismic detailing and serviceability checks
+  beyond deflection and crack width are **not included**.
+
+If you find a bug or a result that doesn't look right, please open an issue on
+GitHub. Feedback is very welcome.
 
 ---
 
@@ -72,14 +103,7 @@ npm run lint       # ESLint 9, flat config in eslint.config.js
 npm test           # solver regression checks — no framework, plain node
 ```
 
-`npm test` runs `tests/regression.js`, which loads the analysis and design
-modules into a Node VM the same way `index.html` loads them and asserts the
-invariants rather than golden numbers: global force equilibrium for every load
-type and every support type (springs included), agreement between the linear and
-P-Δ paths, that second-order effects amplify sway and amplify it more as gravity
-load grows, that 2D and 3D give the same answer for a planar frame, that the
-design codes read the solver's compression-positive axial convention, and that
-degenerate models produce an error instead of a plausible-looking answer.
+See [Testing](#testing) for what `npm test` checks.
 
 > **Runtime dependency:** `index.html` loads SheetJS from a CDN for `.xlsx`
 > import. Everything else is served locally, but section-library import from
@@ -133,9 +157,10 @@ degenerate models produce an error instead of a plausible-looking answer.
 │   │
 │   ├── db/
 │   │   └── indexeddb.js        IndexedDB manager (StructDB)
-│   │                           Stores: sections | projects (auto-save) | results_cache
-│   │                           NOTE: implemented and loaded, but nothing calls it
-│   │                           yet — the live auto-save uses localStorage. See below.
+│   │                           Stores: sections | results_cache
+│   │                           The results cache is in use; the sections store
+│   │                           is ready but not used yet. Auto-save uses
+│   │                           localStorage — see below.
 │   │
 │   ├── features/
 │   │   ├── view3d.js           3D view management (axis views, ViewCube sync)
@@ -259,19 +284,17 @@ Define dialogs read and write those arrays in place:
 | Define ▸ Materials | inline `MAT_UI` in `index.html` | `SA.materials` |
 | Section Manager, Model explorer, solver | `app.js` | `SA.sections` |
 
-Both dialogs previously kept private arrays in their own localStorage keys
-(`sa_frame_secs_v5`, `sa_materials_v1`) and pushed them into `SA` by **name** —
-on dialog close and on a `setTimeout` 1.5 s after every page load. That made
-section and material definitions a property of the *browser* rather than of the
-model, and the push overwrote whatever the model had: an edit made in the
-Sections table, or a section loaded from a `.frame` file, was silently reverted
-to the local copy's value, and the solver then ran on the reverted numbers.
-Deletes never propagated and a rename produced a duplicate.
+In earlier versions, both dialogs kept their own copies in localStorage
+(`sa_frame_secs_v5`, `sa_materials_v1`) and synced them into `SA` by name.
+Because those copies belonged to the browser rather than to the model, they
+could get out of step with it — for example, overriding a section loaded from a
+`.frame` file. Keeping a single store removes that problem.
 
-Both keys are now read **once** and merged into the model (`FRAME_SEC.init()`,
-`MAT_UI.migrate()`, both called from `App.init()` after the session is
-restored — materials first, since sections resolve their material by id). The
-old keys are left in place so a rollback loses nothing.
+For existing users, both old keys are read **once** at startup and merged into
+the model (`FRAME_SEC.init()`, `MAT_UI.migrate()`, both called from
+`App.init()` after the session is restored — materials first, since sections
+resolve their material by id). The old keys are left in place, so nothing is
+lost if you roll back.
 
 Two kinds of section live in the one array:
 
@@ -297,34 +320,32 @@ library rather than being handed an empty one.
 
 ### IndexedDB (StructDB)
 
-> **Partly wired.** The results cache is live: `solveLinear()` fingerprints the
+> **Partly in use.** The results cache is live: `solveLinear()` fingerprints the
 > model with `modelHash()`, returns a cached result on a hit, and writes one
 > after each solve (clearing the cache if the browser rejects the write on
 > quota). The fingerprint covers geometry, sections, loads, settlements and
 > member releases, so a hinge or section change invalidates it.
 >
-> Still on `localStorage`: the auto-save and named saves, written by `app.js`
-> to `sa_autosave_v1` / `sa_file_*`. `saveSections`/`searchSections`/
-> `getAllSections`/`getSectionById` below are fully implemented and covered by
-> the test suite, but nothing in the app calls them — section import
-> (Excel/CSV) writes straight into `window.SA.sections` and never touches this
-> store. A third store, `projects`, held `saveProject`/`loadProject` for
-> exactly the auto-save job above; nothing ever called those either, so
-> `DB_VERSION 2` (see `js/db/indexeddb.js`) removed the store outright rather
-> than leave an empty one in every install.
+> Auto-save and named saves still use `localStorage` (`sa_autosave_v1` /
+> `sa_file_*`, written by `app.js`). The section functions below
+> (`saveSections`, `searchSections`, `getAllSections`, `getSectionById`) are
+> fully implemented and covered by the test suite, but the app doesn't use them
+> yet — section import (Excel/CSV) writes straight into `window.SA.sections`.
+> An earlier `projects` store was never used, so `DB_VERSION 2` (see
+> `js/db/indexeddb.js`) removed it.
 
 Two stores for fast offline access:
 
 | Store | Key | Purpose |
 |-------|-----|---------|
-| `sections` | auto-increment | Full section library; indexed by `material` + `nameSearch` — implemented, unused |
+| `sections` | auto-increment | Full section library; indexed by `material` + `nameSearch` — ready, not used yet |
 | `results_cache` | model hash | Skip re-solving unchanged models — live |
 
 ```js
-// Import sections into DB after Excel/CSV load (implemented; nothing calls this yet)
+// Import sections into DB after Excel/CSV load (ready; not used by the app yet)
 await StructDB.saveSections(sections);
 
-// Fast filtered search (no re-import needed) — implemented; nothing calls this yet
+// Fast filtered search (no re-import needed) — ready; not used by the app yet
 const steelSections = await StructDB.searchSections('W200', 'steel');
 
 // Results cache — avoid re-solving unchanged models (this path is live)
@@ -403,5 +424,5 @@ Requires: IndexedDB, Web Workers, SVG, CSS custom properties, ES2020
 
 ## License
 
-[MIT](LICENSE). The license's no-warranty clause applies alongside the
-disclaimer at the top of this file.
+[MIT](LICENSE). As the license says, the software is provided as is, without
+warranty. Please also see [Using it with care](#using-it-with-care).
