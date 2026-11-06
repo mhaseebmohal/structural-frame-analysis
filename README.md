@@ -3,87 +3,35 @@
 A web-based tool for 2D and 3D structural frame analysis and design that runs right in your browser.  
 Direct Stiffness Method (FEM) | ACI 318-19 | Eurocode 2 & 3 | P-Δ | Mode Shapes | Response Spectrum
 
-> **A quick note before you start:** this is an engineering aid, not certified
-> design software. Please have any results checked by a qualified engineer
-> before you use them on a real project. There's more on this in
-> [Using it with care](#using-it-with-care).
-
 ---
 
-## How this was built
+## About
 
-I built this project with the help of [Claude](https://claude.ai), Anthropic's
-AI model, using Claude Code. Claude wrote the code. The direction, the
-engineering decisions and the testing were mine.
-
-- **I gave all the instructions.** Every feature started with my own
-  instructions, written in engineering terms: what it should do, which method
-  or code clause to follow, the units and sign conventions, and the edge cases
-  that matter.
-- **I reviewed the results as an engineer.** Does the deflected shape make
-  sense? Do the reactions balance the loads? Does a member check agree with my
-  hand calculation? When something didn't look right, I explained what was
-  wrong and why, and had it fixed.
-- **I made the final call.** Claude suggested and I decided what was correct
-  and what went into the tool.
-- **I tested the features myself.** I worked through the features in the app,
-  as thoroughly as I could, to make sure they behave the way they should. I
-  also turned the checks I kept repeating by hand into automated tests (see
-  [Testing](#testing)).
-
-I'm sharing this openly because I think it's useful to know how a tool was
-made. It doesn't change the advice below: like any analysis software, its
-results are worth checking.
-
----
+I'm an engineer, and I built this tool with the help of
+[Claude](https://claude.ai) (Anthropic's AI model) in Claude Code. Claude wrote
+the code. I gave all the instructions, made the engineering decisions and
+tested the features myself, checking the results against hand calculations and
+engineering judgement.
 
 ## Testing
 
-**Manual testing.** I tested the features in the app myself. I built models,
-ran the analyses and design checks, and compared the results with hand
-calculations and with what engineering judgement says they should be.
+Besides manual testing, `npm test` runs automated checks on the core analysis:
+equilibrium for every load and support type, agreement between the linear, P-Δ
+and modal results, 2D vs 3D, closed-form beam results and the section library.
 
-**Automated tests.** `npm test` runs `tests/regression.js`, which loads the
-analysis and design modules into a Node VM the same way `index.html` loads
-them. It checks the rules the analysis depends on rather than comparing
-against stored numbers:
+## Limitations
 
-- global force equilibrium for every load type and every support type (springs included)
-- agreement between the linear, P-Δ and modal paths
-- second-order effects amplify sway, and amplify it more as gravity load grows
-- 2D and 3D give the same answer for a planar frame
-- closed-form beam results match numerical integration
-- the section library matches first-principles calculations
-- the design codes read the solver's compression-positive axial convention correctly
-- degenerate models produce an error instead of a plausible-looking answer
+As with any analysis software, review the results before you use them in a design.
 
-Passing tests mean these core rules hold. They're a strong safety net, but they
-can't guarantee that every result is right for every design.
+- Design checks use simplified forms of EC3, EC2 and ACI 318-19, with the
+  recommended partial factors (no national annex).
+- Column checks assume symmetric reinforcement. Effective lengths come from the
+  K factors you set for each member.
+- Second-order effects are included only when you run the P-Δ analysis.
+- Connections, fatigue, fire, seismic detailing and serviceability beyond
+  deflection and crack width are not included.
 
----
-
-## Using it with care
-
-I've done my best to make the results reliable, but please treat this as an
-engineering aid rather than code-compliant design software. Every result should
-be checked by a qualified engineer who takes responsibility for the design.
-The tool comes with no warranty (see [License](#license)).
-
-A few limits that are good to know:
-
-- The design modules use **simplified forms** of EC3, EC2 and ACI 318-19. They
-  cover the common checks rather than the full codes, and they use the
-  recommended partial factors rather than any national annex.
-- Column checks assume **symmetric reinforcement**. Effective lengths come from
-  the K factors you set for each member. The tool doesn't check these against
-  the actual restraint conditions.
-- Second-order effects are included only when you run the P-Δ analysis. The
-  linear solve doesn't include them.
-- Connections, fatigue, fire, seismic detailing and serviceability checks
-  beyond deflection and crack width are **not included**.
-
-If you find a bug or a result that doesn't look right, please open an issue on
-GitHub. Feedback is very welcome.
+Found a bug? Please open an issue.
 
 ---
 
@@ -424,5 +372,4 @@ Requires: IndexedDB, Web Workers, SVG, CSS custom properties, ES2020
 
 ## License
 
-[MIT](LICENSE). As the license says, the software is provided as is, without
-warranty. Please also see [Using it with care](#using-it-with-care).
+[MIT](LICENSE). Provided as is, without warranty.
