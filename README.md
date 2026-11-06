@@ -3,12 +3,7 @@
 A web-based tool for 2D and 3D structural frame analysis and design that runs right in your browser.  
 Direct Stiffness Method (FEM) | ACI 318-19 | P-Δ | Mode Shapes | Response Spectrum
 
-
-<!-- Option B: Centered embed -->
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/a05b5231-126b-43b8-a2f7-aa88f36b56eb
-" width="90%" controls></video>
-</p>
+https://github.com/user-attachments/assets/a05b5231-126b-43b8-a2f7-aa88f36b56eb
 
 ---
 
